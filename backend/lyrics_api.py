@@ -2,8 +2,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import urllib.parse
+import os
 
 app = Flask(__name__)
+
+# Allow requests from the frontend
 CORS(app)
 
 
@@ -17,6 +20,7 @@ def get_lyrics():
     song = request.args.get("song")
     artist = request.args.get("artist")
 
+    # Check required values
     if not song or not artist:
         return jsonify({
             "error": "Song name and artist are required"
@@ -65,7 +69,6 @@ def get_lyrics():
                     "source": "lyrics.ovh"
                 })
 
-
     except Exception as error:
 
         print(
@@ -81,8 +84,8 @@ def get_lyrics():
     try:
 
         params = {
-            "track_name": song,
-            "artist_name": artist
+            "track_name": song.strip(),
+            "artist_name": artist.strip()
         }
 
         response = requests.get(
@@ -109,7 +112,6 @@ def get_lyrics():
                     "source": "LRCLIB"
                 })
 
-
     except Exception as error:
 
         print(
@@ -128,13 +130,36 @@ def get_lyrics():
 
 
 # =========================================
+# HEALTH CHECK
+# =========================================
+
+@app.route("/", methods=["GET"])
+def home():
+
+    return jsonify({
+        "status": "success",
+        "message": "Tantra Academy Lyrics API is running"
+    })
+
+
+# =========================================
 # SERVER
 # =========================================
 
 if __name__ == "__main__":
 
+    # Render provides the PORT automatically.
+    # When running locally, it will use 5001.
+
+    port = int(
+        os.environ.get(
+            "PORT",
+            5001
+        )
+    )
+
     app.run(
-        host="127.0.0.1",
-        port=5001,
-        debug=True
+        host="0.0.0.0",
+        port=port,
+        debug=False
     )
