@@ -21805,3 +21805,361 @@ a.teacher-fees-back:hover {
   }
 
 }
+/* =========================================================
+   SONG LEARNING PAGE
+   ========================================================= */
+
+.song-learning-page {
+  min-height: 100vh;
+  background: #f7f6ff;
+  padding: 35px 45px 60px;
+  box-sizing: border-box;
+}
+
+.song-learning-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Header */
+
+.song-learning-header {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.song-learning-header h1 {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 800;
+  color: #171326;
+}
+
+.song-learning-header p {
+  margin: 5px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #6d4aff;
+}
+
+/* Back Button */
+
+.back-button {
+  border: none;
+  background: #ffffff;
+  color: #6d4aff;
+  border: 1px solid #ddd6ff;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.back-button:hover {
+  background: #6d4aff;
+  color: #ffffff;
+}
+
+/* Cards */
+
+.song-learning-card {
+  background: #ffffff;
+  border: 1px solid #ebe8f8;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 25px rgba(70, 50, 130, 0.06);
+}
+
+/* Song Information */
+
+.song-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.song-info-grid > div {
+  background: #f8f7ff;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.info-label {
+  display: block;
+  font-size: 13px;
+  color: #77718d;
+  margin-bottom: 7px;
+}
+
+.song-info-grid strong {
+  display: block;
+  font-size: 17px;
+  color: #211b35;
+}
+
+/* Section Heading */
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 25px;
+  color: #211b35;
+}
+
+.section-heading p {
+  margin: 7px 0 0;
+  color: #77718d;
+  font-size: 14px;
+}
+
+.progress-number {
+  font-size: 28px;
+  color: #6d4aff;
+}
+
+/* Progress */
+
+.progress-bar-container {
+  width: 100%;
+  height: 12px;
+  background: #eeeafc;
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #6d4aff;
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+.progress-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+
+.primary-button,
+.secondary-button {
+  border-radius: 10px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.primary-button {
+  border: 1px solid #6d4aff;
+  background: #6d4aff;
+  color: #ffffff;
+}
+
+.primary-button:hover {
+  background: #5938df;
+}
+
+.secondary-button {
+  border: 1px solid #dcd6f7;
+  background: #ffffff;
+  color: #5d4a9d;
+}
+
+.secondary-button:hover {
+  background: #f1edff;
+  border-color: #6d4aff;
+}
+
+/* Success Message */
+
+.success-message {
+  margin-top: 18px;
+  padding: 12px 15px;
+  background: #f0fff6;
+  border: 1px solid #c8efd9;
+  border-radius: 10px;
+  color: #23804b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Automatic Lyrics */
+
+.lyrics-loading {
+  text-align: center;
+  padding: 35px;
+  color: #6d4aff;
+}
+
+.lyrics-loading p {
+  margin-top: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #e6e0ff;
+  border-top: 3px solid #6d4aff;
+  border-radius: 50%;
+  animation: songSpinner 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes songSpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Lyrics Box */
+
+.lyrics-box {
+  background: #faf9ff;
+  border: 1px solid #e7e2fb;
+  border-radius: 14px;
+  padding: 22px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.lyrics-source {
+  display: inline-block;
+  margin-bottom: 15px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: #eee9ff;
+  color: #6d4aff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lyrics-box pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #302b40;
+}
+
+/* Lyrics Error */
+
+.lyrics-error {
+  background: #fff8f8;
+  border: 1px solid #f1d5d5;
+  border-radius: 14px;
+  padding: 20px;
+  color: #9b4040;
+  font-size: 14px;
+}
+
+.lyrics-error p {
+  margin: 0 0 8px;
+}
+
+.lyrics-error p:last-child {
+  margin-bottom: 0;
+}
+
+/* Audio */
+
+.audio-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.small-note {
+  margin-top: 15px;
+  color: #817b91;
+  font-size: 13px;
+}
+
+/* Song Details */
+
+.song-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.song-details > div {
+  background: #f8f7ff;
+  border-radius: 12px;
+  padding: 15px;
+}
+
+.song-details span {
+  display: block;
+  font-size: 13px;
+  color: #817b91;
+  margin-bottom: 5px;
+}
+
+.song-details strong {
+  color: #29233b;
+  font-size: 15px;
+}
+
+/* Footer */
+
+.song-learning-footer {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 5px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 800px) {
+  .song-learning-page {
+    padding: 25px 20px 45px;
+  }
+
+  .song-learning-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .song-learning-header h1 {
+    font-size: 32px;
+  }
+
+  .song-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .song-details {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
