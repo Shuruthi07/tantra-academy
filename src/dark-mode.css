@@ -1,0 +1,1651 @@
+/* =========================================================
+   TANTRA ACADEMY
+   GLOBAL DARK MODE
+   ========================================================= */
+
+
+/* =========================================================
+   1. ROOT / BODY
+   ========================================================= */
+
+html[data-theme="dark"] {
+  background: #101014;
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+  background: #101014 !important;
+  color: #eeeeF2 !important;
+}
+
+html[data-theme="dark"] #root {
+  background: #101014;
+  min-height: 100vh;
+}
+
+
+/* =========================================================
+   2. GENERAL TEXT
+   ========================================================= */
+
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6 {
+  color: #f5f5f7 !important;
+}
+
+html[data-theme="dark"] p {
+  color: #b5b5bd;
+}
+
+html[data-theme="dark"] span {
+  color: inherit;
+}
+
+html[data-theme="dark"] label {
+  color: #d7d7dd;
+}
+
+
+/* =========================================================
+   3. PUBLIC NAVBAR
+   ========================================================= */
+
+html[data-theme="dark"] nav {
+  background: #18181d !important;
+  color: #ffffff;
+  border-bottom: 1px solid #2a2a31;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.25);
+}
+
+html[data-theme="dark"] .logo {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .nav-links a {
+  color: #d0d0d7 !important;
+}
+
+html[data-theme="dark"] .nav-links a:hover {
+  color: #8d75ff !important;
+}
+
+html[data-theme="dark"] .login-btn {
+  background: transparent !important;
+  color: #9a86ff !important;
+  border-color: #6c4df6 !important;
+}
+
+html[data-theme="dark"] .join-btn {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   4. HOME HERO
+   ========================================================= */
+
+html[data-theme="dark"] .hero {
+  background: linear-gradient(
+    135deg,
+    #121218,
+    #1b1729
+  ) !important;
+}
+
+html[data-theme="dark"] .hero h1 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .hero-description {
+  color: #b8b8c2 !important;
+}
+
+html[data-theme="dark"] .hero-tag {
+  color: #9b88ff !important;
+}
+
+html[data-theme="dark"] .secondary-btn {
+  background: #1d1d24 !important;
+  color: #9b88ff !important;
+  border-color: #6c4df6 !important;
+}
+
+html[data-theme="dark"] .music-circle {
+  background: #202027 !important;
+  box-shadow: 0 20px 60px rgba(108, 77, 246, 0.25);
+}
+
+
+/* =========================================================
+   5. HOME SECTIONS
+   ========================================================= */
+
+html[data-theme="dark"] .classes-section,
+html[data-theme="dark"] .gallery-section {
+  background: #15151a !important;
+}
+
+html[data-theme="dark"] .events-section {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .about-section {
+  background: #18181d !important;
+}
+
+html[data-theme="dark"] .section-heading h2 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .section-heading span {
+  color: #aaaab4 !important;
+}
+
+html[data-theme="dark"] .section-heading p {
+  color: #9b88ff !important;
+}
+
+
+/* =========================================================
+   6. CLASS CARDS
+   ========================================================= */
+
+html[data-theme="dark"] .class-card {
+  background: #1d1d23 !important;
+  border-color: #303039 !important;
+  color: #eeeeee;
+}
+
+html[data-theme="dark"] .class-card:hover {
+  box-shadow: 0 15px 40px rgba(108, 77, 246, 0.16);
+}
+
+html[data-theme="dark"] .class-icon {
+  background: #292431 !important;
+}
+
+html[data-theme="dark"] .class-card h3 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .class-card p {
+  color: #aaaaB4 !important;
+}
+
+html[data-theme="dark"] .class-level,
+html[data-theme="dark"] .class-card button {
+  color: #9b88ff !important;
+}
+
+
+/* =========================================================
+   7. EVENT CARDS
+   ========================================================= */
+
+html[data-theme="dark"] .event-card,
+html[data-theme="dark"] .student-event-card {
+  background: #1d1d23 !important;
+  border-color: #303039 !important;
+  color: #eeeeee;
+}
+
+html[data-theme="dark"] .event-date,
+html[data-theme="dark"] .event-date-box {
+  background: #292431 !important;
+}
+
+html[data-theme="dark"] .event-date strong {
+  color: #9b88ff !important;
+}
+
+html[data-theme="dark"] .event-date span,
+html[data-theme="dark"] .event-date-box span {
+  color: #a6a6af !important;
+}
+
+html[data-theme="dark"] .event-info p,
+html[data-theme="dark"] .student-event-content p {
+  color: #aaaaB4 !important;
+}
+
+html[data-theme="dark"] .event-details span {
+  color: #c1c1c8 !important;
+}
+
+html[data-theme="dark"] .event-type {
+  background: #292931 !important;
+  color: #c4c4cc !important;
+}
+
+html[data-theme="dark"] .event-view-btn {
+  background: #24242b !important;
+  color: #eeeeee !important;
+  border-color: #3a3a43 !important;
+}
+
+html[data-theme="dark"] .event-view-btn:hover {
+  background: #303039 !important;
+}
+
+
+/* =========================================================
+   8. GALLERY
+   ========================================================= */
+
+html[data-theme="dark"] .gallery-card {
+  background: #1c1c22 !important;
+}
+
+html[data-theme="dark"] .gallery-page,
+html[data-theme="dark"] .student-gallery-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .student-gallery-card {
+  background: #1d1d23 !important;
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] .gallery-card-content {
+  background: #1d1d23 !important;
+}
+
+html[data-theme="dark"] .gallery-card-content span {
+  background: #292931 !important;
+  color: #c5c5cc !important;
+}
+
+html[data-theme="dark"] .gallery-view-all-btn {
+  background: #1d1d24 !important;
+  color: #9b88ff !important;
+  border-color: #6c4df6 !important;
+}
+
+html[data-theme="dark"] .gallery-view-all-btn:hover {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   9. ABOUT
+   ========================================================= */
+
+html[data-theme="dark"] .about-label {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .about-text {
+  color: #b1b1bb !important;
+}
+
+html[data-theme="dark"] .about-btn {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   10. LOGIN / REGISTER
+   ========================================================= */
+
+html[data-theme="dark"] .login-page,
+html[data-theme="dark"] .register-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .login-card,
+html[data-theme="dark"] .register-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="dark"] .login-card h1,
+html[data-theme="dark"] .register-card h1 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .login-subtitle,
+html[data-theme="dark"] .register-subtitle,
+html[data-theme="dark"] .register-text,
+html[data-theme="dark"] .already-account {
+  color: #a7a7b0 !important;
+}
+
+html[data-theme="dark"] .login-card input,
+html[data-theme="dark"] .register-card input,
+html[data-theme="dark"] .register-card select {
+  background: #25252c !important;
+  color: #ffffff !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .login-card input:focus,
+html[data-theme="dark"] .register-card input:focus,
+html[data-theme="dark"] .register-card select:focus {
+  border-color: #6c4df6 !important;
+}
+
+html[data-theme="dark"] .login-options a,
+html[data-theme="dark"] .register-text a,
+html[data-theme="dark"] .already-account a {
+  color: #9b88ff !important;
+}
+
+html[data-theme="dark"] .login-submit,
+html[data-theme="dark"] .register-submit {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .google-login {
+  background: #25252c !important;
+  color: #ffffff !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .google-login:hover {
+  background: #303039 !important;
+}
+
+html[data-theme="dark"] .login-divider {
+  color: #777783 !important;
+}
+
+html[data-theme="dark"] .login-divider::before,
+html[data-theme="dark"] .login-divider::after {
+  background: #363640 !important;
+}
+
+
+/* =========================================================
+   11. STUDENT DASHBOARD
+   ========================================================= */
+
+html[data-theme="dark"] .student-dashboard {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .dashboard-main {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .dashboard-sidebar {
+  background: #18181d !important;
+  border-right: 1px solid #292930;
+}
+
+html[data-theme="dark"] .dashboard-sidebar nav a,
+html[data-theme="dark"] .logout {
+  color: #bdbdc6 !important;
+}
+
+html[data-theme="dark"] .dashboard-sidebar nav a:hover,
+html[data-theme="dark"] .dashboard-sidebar nav a.active,
+html[data-theme="dark"] .logout:hover {
+  background: #292430 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .dashboard-logo {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .dashboard-header p {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .student-profile,
+html[data-theme="dark"] .notification-icon {
+  background: #222229 !important;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .stat-card,
+html[data-theme="dark"] .dashboard-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .stat-card span,
+html[data-theme="dark"] .dashboard-card span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .stat-card p,
+html[data-theme="dark"] .dashboard-card p {
+  color: #aaaab4 !important;
+}
+
+html[data-theme="dark"] .dashboard-card button {
+  background: #6c4df6 !important;
+}
+
+
+/* =========================================================
+   12. MY SONGS
+   ========================================================= */
+
+html[data-theme="dark"] .songs-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .songs-header p,
+html[data-theme="dark"] .songs-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .song-count,
+html[data-theme="dark"] .song-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039;
+}
+
+html[data-theme="dark"] .song-icon {
+  background: #292431 !important;
+}
+
+html[data-theme="dark"] .song-info p {
+  color: #a5a5af !important;
+}
+
+html[data-theme="dark"] .progress-bar {
+  background: #373740 !important;
+}
+
+html[data-theme="dark"] .progress-fill {
+  background: #6c4df6 !important;
+}
+
+html[data-theme="dark"] .practice-btn,
+html[data-theme="dark"] .practice-song-btn {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   13. TASKS
+   ========================================================= */
+
+html[data-theme="dark"] .tasks-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .tasks-header p,
+html[data-theme="dark"] .tasks-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .task-progress,
+html[data-theme="dark"] .task-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039;
+}
+
+html[data-theme="dark"] .task-check {
+  background: #292931 !important;
+}
+
+html[data-theme="dark"] .task-info p {
+  color: #aaaaB4 !important;
+}
+
+html[data-theme="dark"] .task-info span {
+  color: #888894 !important;
+}
+
+html[data-theme="dark"] .task-status .pending {
+  background: #292931 !important;
+  color: #c7c7cf !important;
+}
+
+html[data-theme="dark"] .task-status .completed {
+  background: #292431 !important;
+  color: #d7d7df !important;
+}
+
+html[data-theme="dark"] .task-status button {
+  background: #6c4df6 !important;
+}
+
+
+/* =========================================================
+   14. SCHEDULE
+   ========================================================= */
+
+html[data-theme="dark"] .schedule-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .schedule-header p,
+html[data-theme="dark"] .schedule-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .schedule-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039;
+}
+
+html[data-theme="dark"] .schedule-date {
+  background: #292431 !important;
+}
+
+html[data-theme="dark"] .schedule-date span {
+  color: #a0a0aa !important;
+}
+
+html[data-theme="dark"] .schedule-type {
+  background: #292931 !important;
+  color: #c4c4cc !important;
+}
+
+html[data-theme="dark"] .schedule-info p {
+  color: #aaaaB4 !important;
+}
+
+html[data-theme="dark"] .schedule-view {
+  background: #25252c !important;
+  color: #eeeeee !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .calendar-btn {
+  background: #6c4df6 !important;
+}
+
+
+/* =========================================================
+   15. PAYMENTS
+   ========================================================= */
+
+html[data-theme="dark"] .payments-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .payments-header p,
+html[data-theme="dark"] .payments-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .payment-summary-card,
+html[data-theme="dark"] .payment-current,
+html[data-theme="dark"] .payment-history {
+  background: #1c1c22 !important;
+  border: 1px solid #303039;
+}
+
+html[data-theme="dark"] .payment-summary-card span,
+html[data-theme="dark"] .payment-summary-card p,
+html[data-theme="dark"] .payment-current p,
+html[data-theme="dark"] .payment-label,
+html[data-theme="dark"] .history-heading p,
+html[data-theme="dark"] .payment-info p {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .payment-action button {
+  background: #25252c !important;
+  color: #eeeeee !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .payment-row {
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] .payment-icon {
+  background: #292431 !important;
+}
+
+html[data-theme="dark"] .payment-status {
+  background: #173323 !important;
+  color: #70d995 !important;
+}
+
+html[data-theme="dark"] .payment-paid {
+  background: #173323 !important;
+  color: #70d995 !important;
+}
+
+
+/* =========================================================
+   16. STUDENT EVENTS
+   ========================================================= */
+
+html[data-theme="dark"] .student-events-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .student-events-header p,
+html[data-theme="dark"] .student-events-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .event-filter-btn {
+  background: #6c4df6 !important;
+}
+
+html[data-theme="dark"] .event-status {
+  background: #173323 !important;
+  color: #70d995 !important;
+}
+
+
+/* =========================================================
+   17. STUDENT GALLERY
+   ========================================================= */
+
+html[data-theme="dark"] .student-gallery-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .student-gallery-header p,
+html[data-theme="dark"] .student-gallery-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .gallery-filter-btn {
+  background: #6c4df6 !important;
+}
+
+html[data-theme="dark"] .gallery-card-content span {
+  background: #292931 !important;
+  color: #c7c7cf !important;
+}
+
+
+/* =========================================================
+   18. FEEDBACK
+   ========================================================= */
+
+html[data-theme="dark"] .feedback-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .feedback-header p,
+html[data-theme="dark"] .feedback-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .feedback-form-card,
+html[data-theme="dark"] .feedback-card,
+html[data-theme="dark"] .teacher-feedback-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039 !important;
+}
+
+html[data-theme="dark"] .feedback-label {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .teacher-response {
+  background: #292931 !important;
+}
+
+html[data-theme="dark"] .teacher-response p {
+  color: #aaaaB4 !important;
+}
+
+
+/* =========================================================
+   19. HISTORY
+   ========================================================= */
+
+html[data-theme="dark"] .history-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .history-card {
+  background: #1c1c22 !important;
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] .history-content p,
+html[data-theme="dark"] .history-content span {
+  color: #aaaaB4 !important;
+}
+
+
+/* =========================================================
+   20. NOTIFICATIONS
+   ========================================================= */
+
+html[data-theme="dark"] .notifications-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .notification-card,
+html[data-theme="dark"] .notification-item {
+  background: #1c1c22 !important;
+  border-color: #303039 !important;
+  color: #eeeeee !important;
+}
+
+html[data-theme="dark"] .notification-content p {
+  color: #aaaaB4 !important;
+}
+
+
+/* =========================================================
+   21. SETTINGS
+   ========================================================= */
+
+html[data-theme="dark"] .settings-page {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .settings-header p,
+html[data-theme="dark"] .settings-header span {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .settings-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039 !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .settings-card-heading p {
+  color: #9999a4 !important;
+}
+
+
+/* =========================================================
+   22. SETTINGS INPUTS
+   ========================================================= */
+
+html[data-theme="dark"] .settings-field input,
+html[data-theme="dark"] .settings-field textarea,
+html[data-theme="dark"] .settings-field select {
+  background: #25252c !important;
+  color: #ffffff !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .settings-field input:focus,
+html[data-theme="dark"] .settings-field textarea:focus,
+html[data-theme="dark"] .settings-field select:focus {
+  border-color: #6c4df6 !important;
+}
+
+
+/* =========================================================
+   23. APPEARANCE BUTTONS
+   ========================================================= */
+
+html[data-theme="dark"] .appearance-option {
+  background: #25252c !important;
+  color: #ddddE5 !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .appearance-option:hover {
+  background: #302c3c !important;
+}
+
+html[data-theme="dark"] .appearance-option.active {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+  border-color: #6c4df6 !important;
+}
+
+
+/* =========================================================
+   24. PASSWORD BUTTONS
+   ========================================================= */
+
+html[data-theme="dark"] .change-password-btn {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .password-cancel-btn {
+  background: #25252c !important;
+  color: #eeeeee !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .settings-save-success {
+  background: #173323 !important;
+  color: #70d995 !important;
+  border-color: #285c3a !important;
+}
+
+
+/* =========================================================
+   25. TEACHER DASHBOARD
+   ========================================================= */
+
+html[data-theme="dark"] .teacher-dashboard {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .teacher-main {
+  background: #101014 !important;
+}
+
+html[data-theme="dark"] .teacher-sidebar {
+  background: #18181d !important;
+  border-right: 1px solid #292930;
+}
+
+html[data-theme="dark"] .teacher-logo {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .teacher-sidebar nav a,
+html[data-theme="dark"] .teacher-logout {
+  color: #bdbdc6 !important;
+}
+
+html[data-theme="dark"] .teacher-sidebar nav a:hover,
+html[data-theme="dark"] .teacher-sidebar nav a.active,
+html[data-theme="dark"] .teacher-logout:hover {
+  background: #292430 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .teacher-header p {
+  color: #9999a4 !important;
+}
+
+
+/* =========================================================
+   26. TEACHER CARDS
+   ========================================================= */
+
+html[data-theme="dark"] .teacher-card,
+html[data-theme="dark"] .teacher-stat-card,
+html[data-theme="dark"] .teacher-dashboard-card,
+html[data-theme="dark"] .teacher-content-card {
+  background: #1c1c22 !important;
+  color: #eeeeee !important;
+  border-color: #303039 !important;
+}
+
+
+/* =========================================================
+   27. TEACHER TABLES
+   ========================================================= */
+
+html[data-theme="dark"] table {
+  background: #1c1c22 !important;
+  color: #eeeeee !important;
+}
+
+html[data-theme="dark"] thead,
+html[data-theme="dark"] th {
+  background: #25252c !important;
+  color: #ffffff !important;
+  border-color: #383841 !important;
+}
+
+html[data-theme="dark"] td {
+  background: #1c1c22 !important;
+  color: #d2d2da !important;
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] tbody tr:hover td {
+  background: #25252c !important;
+}
+
+
+/* =========================================================
+   28. TEACHER FORMS
+   ========================================================= */
+
+html[data-theme="dark"] .teacher-main input,
+html[data-theme="dark"] .teacher-main textarea,
+html[data-theme="dark"] .teacher-main select {
+  background: #25252c !important;
+  color: #ffffff !important;
+  border-color: #3b3b45 !important;
+}
+
+html[data-theme="dark"] .teacher-main input:focus,
+html[data-theme="dark"] .teacher-main textarea:focus,
+html[data-theme="dark"] .teacher-main select:focus {
+  border-color: #6c4df6 !important;
+}
+
+
+/* =========================================================
+   29. TEACHER MODALS
+   ========================================================= */
+
+html[data-theme="dark"] .teacher-modal,
+html[data-theme="dark"] .teacher-modal-content,
+html[data-theme="dark"] .modal-content {
+  background: #1c1c22 !important;
+  color: #eeeeee !important;
+  border-color: #303039 !important;
+}
+
+
+/* =========================================================
+   30. COMMON MODALS
+   ========================================================= */
+
+html[data-theme="dark"] .modal-overlay,
+html[data-theme="dark"] .gallery-modal-overlay {
+  background: rgba(0, 0, 0, 0.78) !important;
+}
+
+html[data-theme="dark"] .gallery-modal {
+  background: #1c1c22 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .gallery-modal-close {
+  background: #292931 !important;
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   31. COMMON BUTTONS
+   ========================================================= */
+
+html[data-theme="dark"] .primary-btn,
+html[data-theme="dark"] .save-settings-btn {
+  background: #6c4df6 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .primary-btn:hover,
+html[data-theme="dark"] .save-settings-btn:hover {
+  background: #7c68f7 !important;
+}
+
+
+/* =========================================================
+   32. SELECT / DROPDOWN
+   ========================================================= */
+
+html[data-theme="dark"] select {
+  background-color: #25252c !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] option {
+  background: #25252c;
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   33. CHECKBOX
+   ========================================================= */
+
+html[data-theme="dark"] input[type="checkbox"] {
+  accent-color: #6c4df6;
+}
+
+
+/* =========================================================
+   34. EMPTY STATES
+   ========================================================= */
+
+html[data-theme="dark"] .no-songs-message,
+html[data-theme="dark"] .no-bookings,
+html[data-theme="dark"] .gallery-empty {
+  background: #1c1c22 !important;
+  color: #eeeeee !important;
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] .no-songs-message p,
+html[data-theme="dark"] .gallery-empty p {
+  color: #9999a4 !important;
+}
+
+
+/* =========================================================
+   35. DIGITAL TICKET
+   ========================================================= */
+
+html[data-theme="dark"] .digital-ticket {
+  background: #1c1c22 !important;
+  color: #ffffff !important;
+  border-color: #303039 !important;
+}
+
+
+/* =========================================================
+   36. BOOKING CARDS
+   ========================================================= */
+
+html[data-theme="dark"] .booking-card {
+  background: #1c1c22 !important;
+  color: #eeeeee !important;
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] .booking-card p,
+html[data-theme="dark"] .booking-card span {
+  color: #9999a4 !important;
+}
+
+
+/* =========================================================
+   37. SCROLLBAR
+   ========================================================= */
+
+html[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #101014;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3b3b45;
+  border-radius: 10px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #555563;
+}
+
+
+/* =========================================================
+   38. MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  html[data-theme="dark"] .dashboard-sidebar,
+  html[data-theme="dark"] .teacher-sidebar {
+    border-right: none;
+    border-bottom: 1px solid #292930;
+  }
+
+}
+/* =========================================================
+   STUDENT DASHBOARD - CLEAN DARK THEME
+   ========================================================= */
+
+html[data-theme="dark"] .student-dashboard {
+  background: #121216 !important;
+}
+
+html[data-theme="dark"] .dashboard-main {
+  background: #121216 !important;
+}
+
+
+/* Sidebar */
+
+html[data-theme="dark"] .dashboard-sidebar {
+  background: #18181d !important;
+}
+
+
+/* Header */
+
+html[data-theme="dark"] .dashboard-header h1 {
+  color: #f5f5f7 !important;
+}
+
+html[data-theme="dark"] .dashboard-header p {
+  color: #9d9da7 !important;
+}
+
+
+/* Profile circle */
+
+html[data-theme="dark"] .student-profile {
+  background: #24242b !important;
+  color: #ffffff !important;
+}
+
+
+/* =========================
+   STAT CARDS
+   ========================= */
+
+html[data-theme="dark"] .stat-card {
+  background: #1c1c22 !important;
+  color: #f2f2f5 !important;
+  border: 1px solid #2d2d35 !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.22) !important;
+}
+
+html[data-theme="dark"] .stat-card span {
+  color: #a7a7b0 !important;
+}
+
+html[data-theme="dark"] .stat-card h2 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .stat-card p {
+  color: #888892 !important;
+}
+
+
+/* =========================
+   CONTENT CARDS
+   ========================= */
+
+html[data-theme="dark"] .dashboard-card {
+  background: #1c1c22 !important;
+  color: #f2f2f5 !important;
+  border: 1px solid #2d2d35 !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.22) !important;
+}
+
+
+/* Card label */
+
+html[data-theme="dark"] .dashboard-card .card-label {
+  color: #aaaab4 !important;
+}
+
+
+/* Card heading */
+
+html[data-theme="dark"] .dashboard-card h2 {
+  color: #ffffff !important;
+}
+
+
+/* Card paragraph */
+
+html[data-theme="dark"] .dashboard-card p {
+  color: #b0b0b9 !important;
+}
+
+
+/* Card secondary text */
+
+html[data-theme="dark"] .dashboard-card span {
+  color: #a1a1ab !important;
+}
+
+
+/* Dashboard button */
+
+html[data-theme="dark"] .dashboard-card button {
+  background: #6d4aff !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .dashboard-card button:hover {
+  background: #7d63ff !important;
+}
+
+
+/* =========================
+   INNER CONTENT BOXES
+   ========================= */
+
+html[data-theme="dark"] .dashboard-card > div {
+  color: #eeeeF2;
+}
+
+
+/* Light inner boxes become dark */
+
+html[data-theme="dark"] .dashboard-card .class-box,
+html[data-theme="dark"] .dashboard-card .song-box,
+html[data-theme="dark"] .dashboard-card .next-class,
+html[data-theme="dark"] .dashboard-card .today-song {
+  background: #24242b !important;
+  border-color: #343440 !important;
+}
+
+
+/* =========================
+   ICON BOXES
+   ========================= */
+
+html[data-theme="dark"] .dashboard-card .icon,
+html[data-theme="dark"] .dashboard-card .card-icon {
+  background: #292431 !important;
+}
+
+
+/* =========================
+   PROGRESS BAR
+   ========================= */
+
+html[data-theme="dark"] .dashboard-card .progress-bar {
+  background: #35353e !important;
+}
+
+html[data-theme="dark"] .dashboard-card .progress-fill {
+  background: #6d4aff !important;
+}
+
+
+/* =========================
+   LINKS
+   ========================= */
+
+html[data-theme="dark"] .dashboard-card a {
+  color: #9b88ff !important;
+}
+
+html[data-theme="dark"] .dashboard-card a:hover {
+  color: #b1a3ff !important;
+}
+/* =========================================================
+   TANTRA ACADEMY - STUDENT DASHBOARD DARK MODE FIX
+   ========================================================= */
+
+/* Main dashboard */
+
+html[data-theme="dark"] .student-dashboard {
+  background: #111116 !important;
+  color: #eeeeee !important;
+}
+
+html[data-theme="dark"] .student-dashboard .dashboard-main {
+  background: #111116 !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+html[data-theme="dark"] .student-dashboard .dashboard-sidebar {
+  background: #19191f !important;
+  border-right: 1px solid #2d2d35 !important;
+}
+
+html[data-theme="dark"] .student-dashboard .dashboard-sidebar nav a {
+  color: #b7b7c0 !important;
+}
+
+html[data-theme="dark"] .student-dashboard .dashboard-sidebar nav a:hover {
+  background: #27232f !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .student-dashboard .dashboard-sidebar nav a.active {
+  background: #6d4aff !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .student-dashboard .logout {
+  color: #b7b7c0 !important;
+}
+
+html[data-theme="dark"] .student-dashboard .logout:hover {
+  background: #302328 !important;
+  color: #ff8c8c !important;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+html[data-theme="dark"] .student-dashboard .dashboard-header h1 {
+  color: #f5f5f7 !important;
+}
+
+html[data-theme="dark"] .student-dashboard .dashboard-header p {
+  color: #9696a1 !important;
+}
+
+html[data-theme="dark"] .student-dashboard .notification-icon {
+  background: #222229 !important;
+  border-color: #34343d !important;
+}
+
+
+/* =========================================================
+   STAT CARDS
+   ========================================================= */
+
+html[data-theme="dark"] .student-stat-card {
+  background: #1c1c22 !important;
+  border-color: #303039 !important;
+  color: #eeeeee !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.22) !important;
+}
+
+html[data-theme="dark"] .student-stat-card h2 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .student-stat-card p {
+  color: #9999a4 !important;
+}
+
+html[data-theme="dark"] .student-stat-card span {
+  color: #aaaab4 !important;
+}
+
+
+/* =========================================================
+   MAIN DASHBOARD CARDS
+   ========================================================= */
+
+html[data-theme="dark"] .student-dashboard-card {
+  background: #1c1c22 !important;
+  border: 1px solid #303039 !important;
+  color: #eeeeee !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.22) !important;
+}
+
+
+/* Card header */
+
+html[data-theme="dark"] .dashboard-card-header h2 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .dashboard-card-header p {
+  color: #9999a4 !important;
+}
+
+
+/* Card label */
+
+html[data-theme="dark"] .student-dashboard-card .card-label {
+  color: #aaaab4 !important;
+}
+
+
+/* =========================================================
+   NEXT CLASS INNER BOX
+   ========================================================= */
+
+html[data-theme="dark"] .next-class-content {
+  background: #25232d !important;
+  border: 1px solid #383344 !important;
+  color: #eeeeee !important;
+}
+
+html[data-theme="dark"] .next-class-content h3 {
+  color: #f4f2ff !important;
+}
+
+html[data-theme="dark"] .next-class-content p {
+  color: #b4b1bd !important;
+}
+
+
+/* =========================================================
+   TODAY'S SONG INNER BOX
+   ========================================================= */
+
+html[data-theme="dark"] .today-song-content {
+  background: #25232d !important;
+  border: 1px solid #383344 !important;
+  color: #eeeeee !important;
+}
+
+html[data-theme="dark"] .today-song-content h3 {
+  color: #f4f2ff !important;
+}
+
+html[data-theme="dark"] .today-song-content p {
+  color: #b4b1bd !important;
+}
+
+html[data-theme="dark"] .today-song-content span {
+  color: #a3a0ac !important;
+}
+
+
+/* Song icon */
+
+html[data-theme="dark"] .song-cover-small {
+  background: linear-gradient(
+    135deg,
+    #6d4aff,
+    #8b72ff
+  ) !important;
+
+  color: #ffffff !important;
+}
+
+
+/* Song progress */
+
+html[data-theme="dark"] .song-progress-bar {
+  background: #3b3944 !important;
+}
+
+html[data-theme="dark"] .song-progress-fill {
+  background: #7b61ff !important;
+}
+
+
+/* =========================================================
+   SCHEDULE BUTTON
+   ========================================================= */
+
+html[data-theme="dark"] .dashboard-small-btn {
+  background: #6d4aff !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .dashboard-small-btn:hover {
+  background: #8068ff !important;
+}
+
+
+/* =========================================================
+   VIEW MY SONGS
+   ========================================================= */
+
+html[data-theme="dark"] .dashboard-card-link {
+  color: #a18fff !important;
+}
+
+html[data-theme="dark"] .dashboard-card-link:hover {
+  color: #b7a9ff !important;
+}
+
+
+/* =========================================================
+   ATTENDANCE
+   ========================================================= */
+
+html[data-theme="dark"] .attendance-circle {
+  background:
+    conic-gradient(
+      #6d4aff 0deg,
+      #6d4aff calc(var(--attendance, 0) * 1deg),
+      #383740 calc(var(--attendance, 0) * 1deg),
+      #383740 360deg
+    ) !important;
+}
+
+
+/* =========================================================
+   EMPTY DASHBOARD
+   ========================================================= */
+
+html[data-theme="dark"] .empty-dashboard-state > div {
+  background: #292532 !important;
+}
+
+html[data-theme="dark"] .empty-dashboard-state h3 {
+  color: #eeeeee !important;
+}
+
+html[data-theme="dark"] .empty-dashboard-state p {
+  color: #9999a4 !important;
+}
+
+
+/* =========================================================
+   TEACHER CARD
+   ========================================================= */
+
+html[data-theme="dark"] .student-teacher-card {
+  background: #1c1c22 !important;
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] .student-teacher-info h2 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .student-teacher-info > p:not(.card-label) {
+  color: #aaaab4 !important;
+}
+
+html[data-theme="dark"] .student-teacher-specialization {
+  background: #292532 !important;
+  color: #a99aff !important;
+}
+
+html[data-theme="dark"] .student-teacher-socials a {
+  background: #25252c !important;
+  border-color: #393943 !important;
+  color: #c0bec8 !important;
+}
+
+html[data-theme="dark"] .student-teacher-socials a:hover {
+  background: #302b3c !important;
+  color: #a99aff !important;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+html[data-theme="dark"] .student-dashboard-footer {
+  color: #888892 !important;
+}
+
+html[data-theme="dark"] .student-dashboard-footer span {
+  color: #777781 !important;
+}
+/* =========================================================
+   SMALL DARK MODE FIXES
+   ========================================================= */
+
+/* Dashboard task box */
+html[data-theme="dark"] .dashboard-task-item {
+  background: #25252c !important;
+  border-color: #363640 !important;
+}
+
+html[data-theme="dark"] .dashboard-task-item h3 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .dashboard-task-item p {
+  color: #aaaab4 !important;
+}
+
+
+/* Fee box */
+html[data-theme="dark"] .fee-dashboard-content {
+  background: #25252c !important;
+  border-color: #363640 !important;
+}
+
+html[data-theme="dark"] .fee-dashboard-content h3 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .fee-dashboard-content p {
+  color: #aaaab4 !important;
+}
+
+
+/* Quick action boxes */
+html[data-theme="dark"] .quick-actions-grid a {
+  background: #25252c !important;
+  border-color: #363640 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .quick-actions-grid a:hover {
+  background: #302b3c !important;
+  border-color: #514577 !important;
+}
+
+html[data-theme="dark"] .quick-actions-grid strong {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .quick-actions-grid a span {
+  background: #302b42 !important;
+}
+
+
+/* =========================================================
+   PRACTICE TASK PAGE
+   ========================================================= */
+
+html[data-theme="dark"] .task-card {
+  background: #1c1c22 !important;
+  border-color: #303039 !important;
+}
+
+html[data-theme="dark"] .task-info h2 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .task-info p {
+  color: #aaaab4 !important;
+}
+
+html[data-theme="dark"] .task-info span {
+  color: #9999a4 !important;
+}
+
+
+/* Due date box */
+html[data-theme="dark"] .task-due-date {
+  background: #25252c !important;
+  color: #b8b8c2 !important;
+  border-color: #363640 !important;
+}
+
+
+/* Instructions box */
+html[data-theme="dark"] .task-instructions {
+  background: #25232d !important;
+  border-color: #393445 !important;
+}
+
+html[data-theme="dark"] .task-instructions strong {
+  color: #a99aff !important;
+}
+
+html[data-theme="dark"] .task-instructions p {
+  color: #b5b2be !important;
+}
+
+
+/* Completed button */
+html[data-theme="dark"] .task-completed-btn {
+  background: #183426 !important;
+  color: #70d995 !important;
+}
+
+
+/* Back button */
+html[data-theme="dark"] .tasks-back-btn {
+  background: #25252c !important;
+  border-color: #3a3a44 !important;
+  color: #a99aff !important;
+}
+
+html[data-theme="dark"] .tasks-back-btn:hover {
+  background: #302b3c !important;
+}
