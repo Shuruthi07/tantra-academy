@@ -1,369 +1,1115 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import {
+  Link,
+  useLocation,
+  useNavigate
+} from "react-router-dom"
+
+
+const BACKEND_URL =
+  "http://127.0.0.1:5000"
+
 
 function StudentDashboard() {
 
   const navigate = useNavigate()
-
-  const [student, setStudent] = useState({
-    name: "Student",
-    email: "",
-    phone: ""
-  })
-
-  const [notificationCount, setNotificationCount] = useState(0)
-
-  const [stats, setStats] = useState({
-    songs: 0,
-    tasks: 0,
-    attendance: 0,
-    fees: "Paid"
-  })
+  const location = useLocation()
 
 
-  // Load student profile
-  useEffect(() => {
+  // =====================================================
+  // STATE
+  // =====================================================
 
-    const savedProfile =
-      JSON.parse(
-        localStorage.getItem("tantraStudentProfile")
-      )
+  const [student, setStudent] =
+    useState({})
 
-    const loggedInUser =
-      JSON.parse(
-        localStorage.getItem("tantraLoggedInUser")
-      )
+  const [songs, setSongs] =
+    useState([])
 
-    if (savedProfile) {
+  const [tasks, setTasks] =
+    useState([])
 
-      setStudent(savedProfile)
+  const [attendance, setAttendance] =
+    useState([])
 
-    } else if (loggedInUser) {
+  const [fees, setFees] =
+    useState([])
 
-      setStudent({
-        name: loggedInUser.name || "Student",
-        email: loggedInUser.email || "",
-        phone: loggedInUser.phone || ""
-      })
+  const [notifications, setNotifications] =
+    useState([])
 
-    }
-
-  }, [])
+  const [loading, setLoading] =
+    useState(true)
 
 
-  // Load dashboard data
-  useEffect(() => {
+  // =====================================================
+  // GET CURRENT STUDENT
+  // =====================================================
 
-    function loadDashboardData() {
+  function getCurrentStudent() {
 
-      const songs =
-        JSON.parse(
-          localStorage.getItem("tantraSongs")
-        ) || []
+    try {
 
-      const tasks =
-        JSON.parse(
-          localStorage.getItem("tantraTasks")
-        ) || []
+      const savedUser =
+        sessionStorage.getItem(
+          "tantraCurrentUser"
+        )
 
-      const attendance =
-        JSON.parse(
-          localStorage.getItem("tantraAttendance")
-        ) || []
+      if (savedUser) {
 
-      const fees =
-        JSON.parse(
-          localStorage.getItem("tantraFees")
-        ) || []
-
-
-      const completedTasks =
-        tasks.filter(
-          (task) =>
-            task.completed === true ||
-            task.status === "Completed"
-        ).length
-
-
-      const presentCount =
-        attendance.filter(
-          (item) =>
-            item.status === "Present"
-        ).length
-
-      const totalAttendance =
-        attendance.length
-
-      const attendancePercentage =
-        totalAttendance > 0
-          ? Math.round(
-              (presentCount / totalAttendance) * 100
-            )
-          : 0
-
-
-      let feeStatus = "Paid"
-
-      if (fees.length > 0) {
-
-        const pendingFees =
-          fees.filter(
-            (fee) =>
-              fee.status === "Pending"
-          )
-
-        if (pendingFees.length > 0) {
-          feeStatus = "Pending"
-        }
+        return JSON.parse(
+          savedUser
+        )
       }
 
 
-      setStats({
-        songs: songs.length,
-        tasks: completedTasks,
-        attendance: attendancePercentage,
-        fees: feeStatus
-      })
+      const loggedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
+        )
 
+      if (loggedUser) {
+
+        return JSON.parse(
+          loggedUser
+        )
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Student data error:",
+        error
+      )
     }
 
+    return {}
+  }
+
+
+  // =====================================================
+  // AUTH HEADERS
+  // =====================================================
+
+  function getAuthHeaders() {
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+
+      "Content-Type":
+        "application/json",
+
+      ...(token
+        ? {
+            Authorization:
+              "Bearer " + token
+          }
+        : {})
+
+    }
+  }
+
+
+  // =====================================================
+  // LOAD STUDENT
+  // =====================================================
+
+  function loadStudent() {
+
+    const currentStudent =
+      getCurrentStudent()
+
+    setStudent(
+      currentStudent || {}
+    )
+  }
+
+
+  // =====================================================
+  // GET STUDENT ID
+  // =====================================================
+
+  function getStudentId() {
+
+    const currentStudent =
+      getCurrentStudent()
+
+    return (
+      currentStudent.id ||
+      currentStudent._id ||
+      currentStudent.userId ||
+      ""
+    )
+  }
+
+
+  // =====================================================
+  // LOAD SONGS
+  // =====================================================
+
+  async function loadSongs() {
+
+    try {
+
+      const response =
+        await fetch(
+          `${BACKEND_URL}/api/admin/songs`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (
+        response.ok &&
+        data.success &&
+        Array.isArray(
+          data.songs
+        )
+      ) {
+
+        const studentId =
+          String(
+            getStudentId()
+          )
+
+
+        const studentSongs =
+          data.songs.filter(
+            song => {
+
+              const assignedId =
+                song.assignedStudentId
+
+
+              if (
+                assignedId
+              ) {
+
+                return (
+                  String(
+                    assignedId
+                  ) ===
+                  studentId
+                )
+              }
+
+
+              return true
+            }
+          )
+
+
+        setSongs(
+          studentSongs
+        )
+
+      } else {
+
+        setSongs([])
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Songs loading error:",
+        error
+      )
+
+      setSongs([])
+    }
+  }
+
+
+  // =====================================================
+  // LOAD TASKS
+  // =====================================================
+
+  async function loadTasks() {
+
+    try {
+
+      const response =
+        await fetch(
+          `${BACKEND_URL}/api/admin/tasks`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (
+        response.ok &&
+        data.success &&
+        Array.isArray(
+          data.tasks
+        )
+      ) {
+
+        const studentId =
+          String(
+            getStudentId()
+          )
+
+
+        const studentTasks =
+          data.tasks.filter(
+            task => {
+
+              const assignedId =
+                task.assignedStudentId
+
+
+              if (
+                assignedId
+              ) {
+
+                return (
+                  String(
+                    assignedId
+                  ) ===
+                  studentId
+                )
+              }
+
+
+              return true
+            }
+          )
+
+
+        setTasks(
+          studentTasks
+        )
+
+      } else {
+
+        setTasks([])
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Tasks loading error:",
+        error
+      )
+
+      setTasks([])
+    }
+  }
+
+
+  // =====================================================
+  // LOAD ATTENDANCE
+  // =====================================================
+
+  async function loadAttendance() {
+
+    try {
+
+      const studentId =
+        getStudentId()
+
+
+      if (!studentId) {
+
+        setAttendance([])
+
+        return
+      }
+
+
+      const response =
+        await fetch(
+          `${BACKEND_URL}/api/attendance/?studentId=${encodeURIComponent(
+            studentId
+          )}`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Student attendance:",
+        response.status,
+        data
+      )
+
+
+      if (
+        response.ok &&
+        data.success &&
+        Array.isArray(
+          data.attendance
+        )
+      ) {
+
+        setAttendance(
+          data.attendance
+        )
+
+      } else {
+
+        setAttendance([])
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Attendance loading error:",
+        error
+      )
+
+      setAttendance([])
+    }
+  }
+
+
+  // =====================================================
+  // LOAD FEES
+  // =====================================================
+
+  async function loadFees() {
+
+    try {
+
+      const studentId =
+        getStudentId()
+
+
+      if (!studentId) {
+
+        setFees([])
+
+        return
+      }
+
+
+      const response =
+        await fetch(
+          `${BACKEND_URL}/api/fees/?studentId=${encodeURIComponent(
+            studentId
+          )}`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (
+        response.ok &&
+        data.success &&
+        Array.isArray(
+          data.fees
+        )
+      ) {
+
+        setFees(
+          data.fees
+        )
+
+      } else {
+
+        setFees([])
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Fees loading error:",
+        error
+      )
+
+      setFees([])
+    }
+  }
+
+
+  // =====================================================
+  // LOAD NOTIFICATIONS
+  // =====================================================
+
+  async function loadNotifications() {
+
+    try {
+
+      const response =
+        await fetch(
+          `${BACKEND_URL}/api/notifications/`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (
+        response.ok &&
+        data.success &&
+        Array.isArray(
+          data.notifications
+        )
+      ) {
+
+        setNotifications(
+          data.notifications
+        )
+
+      } else {
+
+        setNotifications([])
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Notifications loading error:",
+        error
+      )
+
+      setNotifications([])
+    }
+  }
+
+
+  // =====================================================
+  // LOAD EVERYTHING
+  // =====================================================
+
+  async function loadDashboardData() {
+
+    setLoading(true)
+
+    loadStudent()
+
+    await Promise.all([
+      loadSongs(),
+      loadTasks(),
+      loadAttendance(),
+      loadFees(),
+      loadNotifications()
+    ])
+
+    setLoading(false)
+  }
+
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
+  useEffect(() => {
 
     loadDashboardData()
 
 
-    window.addEventListener(
-      "storage",
-      loadDashboardData
-    )
+    function refreshDashboard() {
+
+      loadStudent()
+
+      loadSongs()
+      loadTasks()
+      loadAttendance()
+      loadFees()
+      loadNotifications()
+    }
+
 
     window.addEventListener(
       "songsUpdated",
-      loadDashboardData
+      refreshDashboard
     )
 
     window.addEventListener(
       "tasksUpdated",
-      loadDashboardData
+      refreshDashboard
     )
 
     window.addEventListener(
       "attendanceUpdated",
-      loadDashboardData
+      refreshDashboard
     )
 
     window.addEventListener(
       "feesUpdated",
-      loadDashboardData
-    )
-
-
-    return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadDashboardData
-      )
-
-      window.removeEventListener(
-        "songsUpdated",
-        loadDashboardData
-      )
-
-      window.removeEventListener(
-        "tasksUpdated",
-        loadDashboardData
-      )
-
-      window.removeEventListener(
-        "attendanceUpdated",
-        loadDashboardData
-      )
-
-      window.removeEventListener(
-        "feesUpdated",
-        loadDashboardData
-      )
-
-    }
-
-  }, [])
-
-
-  // Notification count
-  useEffect(() => {
-
-    function loadNotifications() {
-
-      const studentNotifications =
-        JSON.parse(
-          localStorage.getItem(
-            "tantraNotifications"
-          )
-        ) || []
-
-
-      const teacherNotifications =
-        JSON.parse(
-          localStorage.getItem(
-            "tantraTeacherNotifications"
-          )
-        ) || []
-
-
-      const allNotifications = [
-        ...teacherNotifications,
-        ...studentNotifications
-      ]
-
-
-      const unreadCount =
-        allNotifications.filter(
-          (notification) =>
-            notification.unread === true
-        ).length
-
-
-      setNotificationCount(
-        unreadCount
-      )
-
-    }
-
-
-    loadNotifications()
-
-
-    window.addEventListener(
-      "storage",
-      loadNotifications
+      refreshDashboard
     )
 
     window.addEventListener(
       "notificationsUpdated",
-      loadNotifications
+      refreshDashboard
     )
 
 
     return () => {
 
       window.removeEventListener(
-        "storage",
-        loadNotifications
+        "songsUpdated",
+        refreshDashboard
+      )
+
+      window.removeEventListener(
+        "tasksUpdated",
+        refreshDashboard
+      )
+
+      window.removeEventListener(
+        "attendanceUpdated",
+        refreshDashboard
+      )
+
+      window.removeEventListener(
+        "feesUpdated",
+        refreshDashboard
       )
 
       window.removeEventListener(
         "notificationsUpdated",
-        loadNotifications
+        refreshDashboard
       )
-
     }
 
   }, [])
 
 
-  // Logout
+  // =====================================================
+  // ATTENDANCE CALCULATION
+  // =====================================================
+
+  const totalClasses =
+    attendance.length
+
+
+  const presentClasses =
+    attendance.filter(
+      record =>
+        String(
+          record.status || ""
+        ).toLowerCase() ===
+        "present"
+    ).length
+
+
+  const attendancePercentage =
+    totalClasses > 0
+      ? Math.round(
+          (
+            presentClasses /
+            totalClasses
+          ) * 100
+        )
+      : 0
+
+
+  // =====================================================
+  // TASK COUNT
+  // =====================================================
+
+  const pendingTasks =
+    tasks.filter(
+      task =>
+        String(
+          task.status || ""
+        ).toLowerCase() !==
+        "completed"
+    ).length
+
+
+  // =====================================================
+  // FEE STATUS
+  // =====================================================
+
+  const latestFee =
+    fees.length > 0
+      ? fees[0]
+      : null
+
+
+  const feeStatus =
+    latestFee
+      ? String(
+          latestFee.status ||
+          latestFee.paymentStatus ||
+          "Pending"
+        ).toLowerCase() ===
+        "paid"
+        ? "Paid"
+        : "Pending"
+      : "Pending"
+
+
+  // =====================================================
+  // NOTIFICATION COUNT
+  // =====================================================
+
+  const unreadNotifications =
+    notifications.filter(
+      notification =>
+        !notification.read
+    ).length
+
+
+  // =====================================================
+  // STUDENT NAME
+  // =====================================================
+
+  const studentName =
+    student.name ||
+    student.studentName ||
+    "Student"
+
+
+  const studentCourse =
+    student.course ||
+    student.program ||
+    "Music Student"
+
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
   function handleLogout() {
 
-    localStorage.removeItem(
+    sessionStorage.removeItem(
+      "tantraAuthToken"
+    )
+
+    sessionStorage.removeItem(
       "tantraLoggedInUser"
     )
 
-    navigate("/login", {
-      replace: true
-    })
+    sessionStorage.removeItem(
+      "tantraCurrentUser"
+    )
 
+    navigate(
+      "/login",
+      {
+        replace: true
+      }
+    )
   }
 
+
+  // =====================================================
+  // ACTIVE LINK
+  // =====================================================
+
+  function isActive(path) {
+
+    return (
+      location.pathname ===
+      path
+    )
+  }
+
+
+  // =====================================================
+  // FIRST LETTER
+  // =====================================================
+
+  const firstLetter =
+    studentName
+      .charAt(0)
+      .toUpperCase()
+
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
 
     <div className="student-dashboard">
 
-      {/* Sidebar */}
+
+      {/* =================================================
+          SIDEBAR
+      ================================================= */}
 
       <aside className="student-sidebar">
 
+
+        {/* LOGO */}
+
         <div className="student-sidebar-logo">
 
-          <div className="student-logo-icon">
-            🎵
-          </div>
+          <h2>
+            🎵 Tantra Academy
+          </h2>
 
-          <div>
-            <h2>
-              Tantra Academy
-            </h2>
-
-            <span>
-              Student Portal
-            </span>
-          </div>
+          <span>
+            Student Portal
+          </span>
 
         </div>
 
 
-        <nav className="student-sidebar-nav">
+        {/* NAVIGATION */}
+
+        <nav>
+
+
+          {/* DASHBOARD */}
 
           <Link
             to="/student-dashboard"
-            className="active"
+            className={
+              isActive(
+                "/student-dashboard"
+              )
+                ? "active"
+                : ""
+            }
           >
-            🏠 Dashboard
+
+            <span>
+              🏠
+            </span>
+
+            <span>
+              Dashboard
+            </span>
+
           </Link>
 
 
-          <Link to="/my-songs">
-            🎵 My Songs
+          {/* MY SONGS */}
+
+          <Link
+            to="/my-songs"
+            className={
+              isActive(
+                "/my-songs"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              🎵
+            </span>
+
+            <span>
+              My Songs
+            </span>
+
           </Link>
 
 
-          <Link to="/tasks">
-            ✅ Tasks
+          {/* TASKS */}
+
+          <Link
+            to="/tasks"
+            className={
+              isActive(
+                "/tasks"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              ✅
+            </span>
+
+            <span>
+              Tasks
+            </span>
+
           </Link>
 
 
-          <Link to="/schedule">
-            📅 Schedule
+          {/* SCHEDULE */}
+
+          <Link
+            to="/schedule"
+            className={
+              isActive(
+                "/schedule"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              🗓️
+            </span>
+
+            <span>
+              Schedule
+            </span>
+
           </Link>
 
 
-          <Link to="/payments">
-            💳 Payments
+          {/* PAYMENTS */}
+
+          <Link
+            to="/payments"
+            className={
+              isActive(
+                "/payments"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              💳
+            </span>
+
+            <span>
+              Payments
+            </span>
+
           </Link>
 
 
-          <Link to="/events">
-            🎫 Events
+          {/* EVENTS */}
+
+          <Link
+            to="/events"
+            className={
+              isActive(
+                "/events"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              🎫
+            </span>
+
+            <span>
+              Events
+            </span>
+
           </Link>
 
 
-          <Link to="/my-bookings">
-            🎟 My Tickets
+          {/* MY BOOKINGS */}
+
+          <Link
+            to="/my-bookings"
+            className={
+              isActive(
+                "/my-bookings"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              🎟️
+            </span>
+
+            <span>
+              My Tickets
+            </span>
+
           </Link>
 
 
-          <Link to="/gallery">
-            🖼 Gallery
+          {/* ATTENDANCE */}
+
+          <Link
+            to="/student-attendance"
+            className={
+              isActive(
+                "/student-attendance"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              📊
+            </span>
+
+            <span>
+              Attendance
+            </span>
+
           </Link>
 
 
-          <Link to="/feedback">
-            💬 Feedback
+          {/* GALLERY */}
+
+          <Link
+            to="/gallery"
+            className={
+              isActive(
+                "/gallery"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              🖼️
+            </span>
+
+            <span>
+              Gallery
+            </span>
+
           </Link>
 
 
-          <Link to="/history">
-            📜 History
+          {/* FEEDBACK */}
+
+          <Link
+            to="/feedback"
+            className={
+              isActive(
+                "/feedback"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              💬
+            </span>
+
+            <span>
+              Feedback
+            </span>
+
           </Link>
 
 
-          <Link to="/notifications">
-            🔔 Notifications
+          {/* HISTORY */}
 
-            {notificationCount > 0 && (
+          <Link
+            to="/history"
+            className={
+              isActive(
+                "/history"
+              )
+                ? "active"
+                : ""
+            }
+          >
 
-              <span className="notification-badge">
-                {notificationCount}
+            <span>
+              📜
+            </span>
+
+            <span>
+              History
+            </span>
+
+          </Link>
+
+
+          {/* NOTIFICATIONS */}
+
+          <Link
+            to="/notifications"
+            className={
+              `notification-sidebar-link ${
+                isActive(
+                  "/notifications"
+                )
+                  ? "active"
+                  : ""
+              }`
+            }
+          >
+
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "11px"
+              }}
+            >
+
+              <span>
+                🔔
+              </span>
+
+              <span>
+                Notifications
+              </span>
+
+            </span>
+
+
+            {unreadNotifications > 0 && (
+
+              <span
+                style={{
+                  minWidth: "28px",
+                  height: "28px",
+                  padding: "0 8px",
+                  borderRadius: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent:
+                    "center",
+                  background:
+                    "#ff4f70",
+                  color: "white",
+                  fontSize: "12px",
+                  fontWeight: "800"
+                }}
+              >
+
+                {unreadNotifications}
+
               </span>
 
             )}
@@ -371,18 +1117,44 @@ function StudentDashboard() {
           </Link>
 
 
-          <Link to="/settings">
-            ⚙ Settings
+          {/* SETTINGS */}
+
+          <Link
+            to="/settings"
+            className={
+              isActive(
+                "/settings"
+              )
+                ? "active"
+                : ""
+            }
+          >
+
+            <span>
+              ⚙️
+            </span>
+
+            <span>
+              Settings
+            </span>
+
           </Link>
 
         </nav>
 
 
-        <div className="student-sidebar-bottom">
+        {/* LOGOUT */}
+
+        <div
+          className="student-sidebar-bottom"
+        >
 
           <button
+            type="button"
             className="student-logout-btn"
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
           >
             🚪 Logout
           </button>
@@ -392,44 +1164,86 @@ function StudentDashboard() {
       </aside>
 
 
-      {/* Main Content */}
+      {/* =================================================
+          MAIN CONTENT
+      ================================================= */}
 
-      <main className="student-dashboard-main">
+      <main className="student-main">
 
-        {/* Header */}
 
-        <header className="student-dashboard-header">
+        {/* HEADER */}
+
+        <header className="student-header">
 
           <div>
 
-            <p className="dashboard-welcome-small">
+            <p
+              style={{
+                margin: 0,
+                color: "#6d4aff",
+                fontSize: "12px",
+                fontWeight: "800",
+                letterSpacing: "2px"
+              }}
+            >
               STUDENT DASHBOARD
             </p>
 
+
             <h1>
-              Welcome, {student.name}! 👋
+
+              Welcome back,{" "}
+              {studentName}! 👋
+
             </h1>
 
+
             <p>
-              Continue your musical journey
-              with Tantra Academy.
+              Continue your musical
+              journey with Tantra Academy.
             </p>
 
           </div>
 
 
-          <div className="student-header-actions">
+          <div
+            className="student-header-actions"
+          >
 
             <Link
               to="/notifications"
               className="dashboard-notification-btn"
+              style={{
+                position: "relative",
+                textDecoration: "none"
+              }}
             >
+
               🔔
 
-              {notificationCount > 0 && (
+              {unreadNotifications > 0 && (
 
-                <span>
-                  {notificationCount}
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-5px",
+                    right: "-5px",
+                    minWidth: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    background:
+                      "#ff4f70",
+                    color: "white",
+                    fontSize: "9px",
+                    fontWeight: "800",
+                    display: "flex",
+                    alignItems:
+                      "center",
+                    justifyContent:
+                      "center"
+                  }}
+                >
+                  {unreadNotifications}
                 </span>
 
               )}
@@ -437,45 +1251,69 @@ function StudentDashboard() {
             </Link>
 
 
-            <Link
-              to="/settings"
+            <div
               className="student-profile-mini"
             >
 
-              <div className="student-avatar">
-                {student.name
-                  ? student.name
-                      .charAt(0)
-                      .toUpperCase()
-                  : "S"}
+              <div
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "50%",
+                  background:
+                    "#eee8ff",
+                  color: "#6d4aff",
+                  display: "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                  fontWeight: "800"
+                }}
+              >
+                {firstLetter}
               </div>
+
 
               <div>
 
                 <strong>
-                  {student.name}
+                  {studentName}
                 </strong>
 
                 <small>
-                  Student
+                  {studentCourse}
                 </small>
 
               </div>
 
-            </Link>
+            </div>
 
           </div>
 
         </header>
 
 
-        {/* Stats */}
+        {/* STAT CARDS */}
 
-        <section className="student-dashboard-stats">
+        <section
+          className="student-stat-grid"
+        >
 
-          <div className="student-stat-card">
+          {/* MY SONGS */}
 
-            <div className="student-stat-icon">
+          <Link
+            to="/my-songs"
+            className="student-stat-card"
+            style={{
+              textDecoration:
+                "none"
+            }}
+          >
+
+            <div
+              className="student-stat-icon"
+            >
               🎵
             </div>
 
@@ -486,7 +1324,7 @@ function StudentDashboard() {
               </span>
 
               <h2>
-                {stats.songs}
+                {songs.length}
               </h2>
 
               <p>
@@ -495,12 +1333,23 @@ function StudentDashboard() {
 
             </div>
 
-          </div>
+          </Link>
 
 
-          <div className="student-stat-card">
+          {/* TASKS */}
 
-            <div className="student-stat-icon">
+          <Link
+            to="/tasks"
+            className="student-stat-card"
+            style={{
+              textDecoration:
+                "none"
+            }}
+          >
+
+            <div
+              className="student-stat-icon"
+            >
               ✅
             </div>
 
@@ -511,21 +1360,32 @@ function StudentDashboard() {
               </span>
 
               <h2>
-                {stats.tasks}
+                {pendingTasks}
               </h2>
 
               <p>
-                Tasks completed
+                Tasks pending
               </p>
 
             </div>
 
-          </div>
+          </Link>
 
 
-          <div className="student-stat-card">
+          {/* ATTENDANCE */}
 
-            <div className="student-stat-icon">
+          <Link
+            to="/student-attendance"
+            className="student-stat-card"
+            style={{
+              textDecoration:
+                "none"
+            }}
+          >
+
+            <div
+              className="student-stat-icon"
+            >
               📊
             </div>
 
@@ -536,7 +1396,7 @@ function StudentDashboard() {
               </span>
 
               <h2>
-                {stats.attendance}%
+                {attendancePercentage}%
               </h2>
 
               <p>
@@ -545,12 +1405,23 @@ function StudentDashboard() {
 
             </div>
 
-          </div>
+          </Link>
 
 
-          <div className="student-stat-card">
+          {/* FEE */}
 
-            <div className="student-stat-icon">
+          <Link
+            to="/payments"
+            className="student-stat-card"
+            style={{
+              textDecoration:
+                "none"
+            }}
+          >
+
+            <div
+              className="student-stat-icon"
+            >
               💳
             </div>
 
@@ -560,8 +1431,13 @@ function StudentDashboard() {
                 FEE STATUS
               </span>
 
-              <h2>
-                {stats.fees}
+              <h2
+                style={{
+                  fontSize:
+                    "22px"
+                }}
+              >
+                {feeStatus}
               </h2>
 
               <p>
@@ -570,25 +1446,31 @@ function StudentDashboard() {
 
             </div>
 
-          </div>
+          </Link>
 
         </section>
 
 
-        {/* Quick Actions */}
+        {/* =================================================
+            QUICK ACCESS
+        ================================================= */}
 
-        <section className="student-dashboard-section">
+        <section
+          className="student-dashboard-section"
+        >
 
-          <div className="student-section-header">
+          <div
+            className="student-section-header"
+          >
 
             <div>
 
-              <span>
+              <p>
                 QUICK ACCESS
-              </span>
+              </p>
 
               <h2>
-                What would you like to do?
+                Your Academy
               </h2>
 
             </div>
@@ -596,9 +1478,13 @@ function StudentDashboard() {
           </div>
 
 
-          <div className="quick-actions-grid">
+          <div
+            className="quick-actions-grid"
+          >
 
-            <Link to="/my-songs">
+            <Link
+              to="/my-songs"
+            >
 
               <span>
                 🎵
@@ -609,13 +1495,15 @@ function StudentDashboard() {
               </strong>
 
               <small>
-                Practice your assigned songs
+                Learn your assigned songs
               </small>
 
             </Link>
 
 
-            <Link to="/tasks">
+            <Link
+              to="/tasks"
+            >
 
               <span>
                 ✅
@@ -632,10 +1520,14 @@ function StudentDashboard() {
             </Link>
 
 
-            <Link to="/schedule">
+            {/* FIXED SCHEDULE ROUTE */}
+
+            <Link
+              to="/schedule"
+            >
 
               <span>
-                📅
+                🗓️
               </span>
 
               <strong>
@@ -649,7 +1541,28 @@ function StudentDashboard() {
             </Link>
 
 
-            <Link to="/payments">
+            <Link
+              to="/student-attendance"
+            >
+
+              <span>
+                📊
+              </span>
+
+              <strong>
+                Attendance
+              </strong>
+
+              <small>
+                View your attendance
+              </small>
+
+            </Link>
+
+
+            <Link
+              to="/payments"
+            >
 
               <span>
                 💳
@@ -660,13 +1573,15 @@ function StudentDashboard() {
               </strong>
 
               <small>
-                Manage your academy fees
+                Check fee status
               </small>
 
             </Link>
 
 
-            <Link to="/events">
+            <Link
+              to="/events"
+            >
 
               <span>
                 🎫
@@ -682,118 +1597,470 @@ function StudentDashboard() {
 
             </Link>
 
-
-            <Link to="/gallery">
-
-              <span>
-                🖼
-              </span>
-
-              <strong>
-                Gallery
-              </strong>
-
-              <small>
-                View academy memories
-              </small>
-
-            </Link>
-
           </div>
 
         </section>
 
 
-        {/* Your Teacher */}
+        {/* =================================================
+            DASHBOARD CONTENT
+        ================================================= */}
 
-        <section className="student-dashboard-section">
+        <section
+          className="student-dashboard-grid"
+        >
 
-          <div className="student-section-header">
+          {/* TODAY'S SONG */}
 
-            <div>
+          <div
+            className="student-dashboard-card"
+          >
 
-              <span>
-                YOUR TEACHER
-              </span>
+            <p
+              className="card-label"
+            >
+              TODAY'S SONG
+            </p>
 
-              <h2>
-                Learn from your teacher
-              </h2>
 
-            </div>
+            {songs.length === 0 ? (
 
-            <Link to="/my-teacher">
-              View Profile
-            </Link>
+              <div
+                className="empty-dashboard-state"
+              >
+
+                <div>
+                  🎵
+                </div>
+
+                <h3>
+                  No songs assigned yet
+                </h3>
+
+                <p>
+                  Your teacher will
+                  assign songs here.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <>
+
+                <div
+                  className="today-song-content"
+                >
+
+                  <div
+                    className="song-cover-small"
+                  >
+                    🎵
+                  </div>
+
+
+                  <div>
+
+                    <h3>
+                      {
+                        songs[0].title ||
+                        "Song"
+                      }
+                    </h3>
+
+                    <p>
+                      {
+                        songs[0].artist ||
+                        songs[0].course ||
+                        "Music Practice"
+                      }
+                    </p>
+
+
+                    <div
+                      className="song-progress-bar"
+                    >
+
+                      <div
+                        className="song-progress-fill"
+                        style={{
+                          width:
+                            "0%"
+                        }}
+                      />
+
+                    </div>
+
+
+                    <span>
+                      Start practicing
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <Link
+                  to="/my-songs"
+                  className="dashboard-card-link"
+                >
+                  View all songs →
+                </Link>
+
+              </>
+
+            )}
 
           </div>
 
 
-          <div className="fee-dashboard-content">
+          {/* ATTENDANCE */}
 
-            <h3>
-              Your Music Teacher
-            </h3>
+          <div
+            className="student-dashboard-card"
+          >
 
-            <p>
-              Your teacher guides you through
-              songs, practice tasks, classes and
-              musical development.
+            <p
+              className="card-label"
+            >
+              ATTENDANCE
             </p>
+
+
+            <div
+              className="attendance-dashboard-content"
+            >
+
+              <div
+                className="attendance-circle"
+                style={{
+                  "--attendance":
+                    `${attendancePercentage * 3.6}deg`
+                }}
+              >
+
+                <span>
+                  {attendancePercentage}%
+                </span>
+
+              </div>
+
+
+              <div>
+
+                <h3>
+                  Overall Attendance
+                </h3>
+
+                <p>
+                  {presentClasses}
+                  {" "}
+                  present out of
+                  {" "}
+                  {totalClasses}
+                  {" "}
+                  classes
+                </p>
+
+
+                <Link
+                  to="/student-attendance"
+                  className="dashboard-card-link"
+                >
+                  View Attendance →
+                </Link>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* TASKS */}
+
+          <div
+            className="student-dashboard-card"
+          >
+
+            <p
+              className="card-label"
+            >
+              TASKS
+            </p>
+
+
+            {tasks.length === 0 ? (
+
+              <div
+                className="empty-dashboard-state"
+              >
+
+                <div>
+                  ✅
+                </div>
+
+                <h3>
+                  No tasks available
+                </h3>
+
+                <p>
+                  New tasks will
+                  appear here.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <div
+                className="dashboard-task-list"
+              >
+
+                {tasks
+                  .slice(0, 4)
+                  .map(
+                    (
+                      task,
+                      index
+                    ) => (
+
+                      <div
+                        className="dashboard-task-item"
+                        key={
+                          task.id ||
+                          task._id ||
+                          index
+                        }
+                      >
+
+                        <div
+                          className="task-check-icon"
+                        >
+                          ✓
+                        </div>
+
+                        <div>
+
+                          <h3>
+                            {
+                              task.title ||
+                              "Practice Task"
+                            }
+                          </h3>
+
+                          <p>
+                            {
+                              task.course ||
+                              "Music Practice"
+                            }
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                    )
+                  )}
+
+              </div>
+
+            )}
+
 
             <Link
-  to="/my-teacher"
-  className="dashboard-action-btn"
->
-              View Teacher Profile →
+              to="/tasks"
+              className="dashboard-card-link"
+            >
+              View all tasks →
             </Link>
+
+          </div>
+
+
+          {/* FEE STATUS */}
+
+          <div
+            className="student-dashboard-card"
+          >
+
+            <p
+              className="card-label"
+            >
+              FEE STATUS
+            </p>
+
+
+            <div
+              className="fee-dashboard-content"
+            >
+
+              <span
+                className={
+                  `fee-status ${
+                    feeStatus.toLowerCase()
+                  }`
+                }
+              >
+
+                {feeStatus === "Paid"
+                  ? "✓ Paid"
+                  : "⏳ Pending"}
+
+              </span>
+
+
+              {latestFee ? (
+
+                <>
+
+                  <h3>
+                    ₹
+                    {Number(
+                      latestFee.amount ||
+                      0
+                    ).toLocaleString(
+                      "en-IN"
+                    )}
+                  </h3>
+
+                  <p>
+                    {
+                      latestFee.month ||
+                      "Monthly fee"
+                    }
+                  </p>
+
+                </>
+
+              ) : (
+
+                <>
+
+                  <h3>
+                    No fee assigned
+                  </h3>
+
+                  <p>
+                    Fee details will
+                    appear here.
+                  </p>
+
+                </>
+
+              )}
+
+
+              <Link
+                to="/payments"
+                className="dashboard-action-btn"
+              >
+                View Payments →
+              </Link>
+
+            </div>
 
           </div>
 
         </section>
 
 
-        {/* Account */}
+        {/* =================================================
+            YOUR ACCOUNT
+        ================================================= */}
 
-        <section className="student-dashboard-section">
+        <section
+          className="student-dashboard-card"
+          style={{
+            marginTop: "20px"
+          }}
+        >
 
-          <div className="student-section-header">
+          <p
+            className="card-label"
+          >
+            YOUR ACCOUNT
+          </p>
 
-            <div>
 
-              <span>
-                ACCOUNT
-              </span>
+          <div
+            style={{
+              display: "flex",
+              alignItems:
+                "center",
+              gap: "18px",
+              flexWrap: "wrap"
+            }}
+          >
 
-              <h2>
-                Your Account
-              </h2>
-
+            <div
+              style={{
+                width: "58px",
+                height: "58px",
+                borderRadius:
+                  "15px",
+                background:
+                  "#eee8ff",
+                color:
+                  "#6d4aff",
+                display: "flex",
+                alignItems:
+                  "center",
+                justifyContent:
+                  "center",
+                fontSize: "22px",
+                fontWeight:
+                  "800"
+              }}
+            >
+              {firstLetter}
             </div>
 
-          </div>
+
+            <div
+              style={{
+                flex: 1
+              }}
+            >
+
+              <h3
+                style={{
+                  margin:
+                    "0 0 5px"
+                }}
+              >
+                {studentName}
+              </h3>
 
 
-          <div className="fee-dashboard-content">
+              <p
+                style={{
+                  margin: 0
+                }}
+              >
+                {student.email ||
+                  "Student account"}
+              </p>
 
-            <h3>
-              {student.name}
-            </h3>
 
-            <p>
-              📧 {student.email || "Email not available"}
-            </p>
+              <p
+                style={{
+                  margin:
+                    "5px 0 0"
+                }}
+              >
+                {studentCourse}
+              </p>
 
-            <p>
-              📱 {student.phone || "Phone not available"}
-            </p>
+            </div>
 
 
             <Link
               to="/settings"
               className="dashboard-action-btn"
             >
-              Manage Account →
+              Account Settings
             </Link>
 
           </div>
@@ -801,24 +2068,50 @@ function StudentDashboard() {
         </section>
 
 
-        {/* Logout */}
+        {/* =================================================
+            FOOTER
+        ================================================= */}
 
-        <section className="student-dashboard-logout-section">
+        <footer
+          className="student-dashboard-footer"
+        >
+
+          <p>
+            © 2026 Tantra Academy
+          </p>
+
+          <span>
+            Learn • Practice • Perform 🎵
+          </span>
+
+        </footer>
+
+
+        {/* =================================================
+            LOGOUT
+        ================================================= */}
+
+        <div
+          className="student-dashboard-logout-section"
+        >
 
           <button
+            type="button"
             className="student-logout-main-btn"
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
           >
-            🚪 Logout from Tantra Academy
+            🚪 Logout
           </button>
 
-        </section>
+        </div>
 
       </main>
 
     </div>
-
   )
 }
+
 
 export default StudentDashboard

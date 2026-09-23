@@ -1,76 +1,218 @@
+import { useEffect, useState } from "react"
 import { Navigate } from "react-router-dom"
 
-function ProtectedRoute({ children, allowedRole }) {
+function ProtectedRoute({
+  children,
+  allowedRole
+}) {
+  const [checking, setChecking] = useState(true)
+  const [user, setUser] = useState(null)
 
-  let loggedInUser = null
+  useEffect(() => {
+    async function verifyAuthentication() {
+      const token =
+        sessionStorage.getItem("tantraAuthToken")
 
-  try {
+      if (!token) {
+        setUser(null)
+        setChecking(false)
+        return
+      }
 
-    loggedInUser =
-      JSON.parse(
-        localStorage.getItem("tantraLoggedInUser")
-      )
+      try {
+        const response = await fetch(
+          "http://127.0.0.1:5000/api/auth/me",
+          {
+            method: "GET",
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+              "Content-Type":
+                "application/json"
+            },
+            cache: "no-store"
+          }
+        )
 
-  } catch (error) {
+        const data = await response.json()
 
-    localStorage.removeItem(
-      "tantraLoggedInUser"
+        console.log(
+          "ProtectedRoute /me:",
+          data
+        )
+
+        if (
+          !response.ok ||
+          !data.success ||
+          !data.user
+        ) {
+          sessionStorage.removeItem(
+            "tantraAuthToken"
+          )
+
+          sessionStorage.removeItem(
+            "tantraLoggedInUser"
+          )
+
+          sessionStorage.removeItem(
+            "tantraCurrentUser"
+          )
+
+          setUser(null)
+          setChecking(false)
+          return
+        }
+
+        const backendUser = data.user
+
+        const role = String(
+          backendUser.role ||
+          backendUser.accountType ||
+          ""
+        )
+          .trim()
+          .toLowerCase()
+
+        const verifiedUser = {
+          ...backendUser,
+          role
+        }
+
+        console.log(
+          "VERIFIED USER:",
+          verifiedUser
+        )
+
+        console.log(
+          "VERIFIED ROLE:",
+          role
+        )
+
+        sessionStorage.setItem(
+          "tantraLoggedInUser",
+          JSON.stringify(
+            verifiedUser
+          )
+        )
+
+        sessionStorage.setItem(
+          "tantraCurrentUser",
+          JSON.stringify(
+            verifiedUser
+          )
+        )
+
+        setUser(verifiedUser)
+
+      } catch (error) {
+        console.error(
+          "Authentication verification error:",
+          error
+        )
+
+        setUser(null)
+
+      } finally {
+        setChecking(false)
+      }
+    }
+
+    verifyAuthentication()
+  }, [])
+
+  if (checking) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#6a1b9a",
+          fontSize: "18px",
+          fontWeight: "600"
+        }}
+      >
+        Checking authentication...
+      </div>
     )
-
   }
 
-
-  // No user logged in
-  if (!loggedInUser) {
-
+  if (!user) {
     return (
       <Navigate
         to="/login"
         replace
       />
     )
-
   }
 
+  const currentRole =
+    String(
+      user.role ||
+      user.accountType ||
+      ""
+    )
+      .trim()
+      .toLowerCase()
 
-  // Check user role
+  const requiredRole =
+    String(
+      allowedRole || ""
+    )
+      .trim()
+      .toLowerCase()
+
+  console.log(
+    "Protected Route:",
+    {
+      currentRole,
+      requiredRole,
+      path: window.location.pathname
+    }
+  )
+
+  /*
+   * ROLE CHECK
+   */
+
   if (
-    allowedRole &&
-    loggedInUser.accountType !== allowedRole
+    requiredRole &&
+    currentRole !== requiredRole
   ) {
 
     if (
-      loggedInUser.accountType === "Teacher"
+      currentRole === "student"
     ) {
-
-      return (
-        <Navigate
-          to="/teacher-dashboard"
-          replace
-        />
-      )
-
-    }
-
-
-    if (
-      loggedInUser.accountType === "Student"
-    ) {
-
       return (
         <Navigate
           to="/student-dashboard"
           replace
         />
       )
-
     }
 
+    if (
+      currentRole === "teacher"
+    ) {
+      return (
+        <Navigate
+          to="/teacher-dashboard"
+          replace
+        />
+      )
+    }
 
-    // Unknown account type
-    localStorage.removeItem(
-      "tantraLoggedInUser"
-    )
+    if (
+      currentRole === "admin"
+    ) {
+      return (
+        <Navigate
+          to="/admin-dashboard"
+          replace
+        />
+      )
+    }
 
     return (
       <Navigate
@@ -78,9 +220,7 @@ function ProtectedRoute({ children, allowedRole }) {
         replace
       />
     )
-
   }
-
 
   return children
 }

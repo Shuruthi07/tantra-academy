@@ -1,389 +1,537 @@
-
 import { useEffect, useState } from "react"
 
-const initialNotifications = [
-  {
-    id: "default-1",
-    icon: "🎵",
-    title: "New song assigned",
-    message:
-      "Your teacher assigned a new song: Someone Like You.",
-    time: "10 minutes ago",
-    type: "Music",
-    unread: true
-  },
-  {
-    id: "default-2",
-    icon: "📅",
-    title: "Upcoming class",
-    message:
-      "Your Vocal Training class starts today at 5:00 PM.",
-    time: "1 hour ago",
-    type: "Class",
-    unread: true
-  },
-  {
-    id: "default-3",
-    icon: "✅",
-    title: "Task reminder",
-    message:
-      "You have 4 pending practice tasks to complete.",
-    time: "3 hours ago",
-    type: "Task",
-    unread: true
-  },
-  {
-    id: "default-4",
-    icon: "💳",
-    title: "Fee payment successful",
-    message:
-      "Your September 2026 academy fee has been paid successfully.",
-    time: "Yesterday",
-    type: "Payment",
-    unread: false
-  },
-  {
-    id: "default-5",
-    icon: "🎫",
-    title: "Event registration open",
-    message:
-      "Registration is now open for the Inter Academy Singing Competition.",
-    time: "Yesterday",
-    type: "Event",
-    unread: false
-  },
-  {
-    id: "default-6",
-    icon: "📢",
-    title: "Academy announcement",
-    message:
-      "Annual Music Concert will be held on 25 September 2026.",
-    time: "2 days ago",
-    type: "Announcement",
-    unread: false
-  }
-]
-
+const API_URL =
+  "http://127.0.0.1:5000/api/notifications"
 
 function Notifications() {
-
   const [notifications, setNotifications] =
     useState([])
 
+  const [loading, setLoading] =
+    useState(true)
 
-  // =========================
-  // LOAD NOTIFICATIONS
-  // =========================
+  const [error, setError] =
+    useState("")
 
-  function loadNotifications() {
+  // =====================================================
+  // JWT AUTH HEADERS
+  // =====================================================
 
-    const savedStudentNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraNotifications"
-        )
+  function getAuthHeaders() {
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
       )
 
-    const teacherNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
-        )
-      ) || []
+    return {
+      "Content-Type":
+        "application/json",
 
-
-    // First time opening notifications
-
-    if (!savedStudentNotifications) {
-
-      localStorage.setItem(
-        "tantraNotifications",
-        JSON.stringify(
-          initialNotifications
-        )
-      )
-
-      setNotifications([
-        ...teacherNotifications,
-        ...initialNotifications
-      ])
-
-      return
+      ...(token
+        ? {
+            Authorization:
+              `Bearer ${token}`
+          }
+        : {})
     }
-
-
-    setNotifications([
-      ...teacherNotifications,
-      ...savedStudentNotifications
-    ])
   }
 
+  // =====================================================
+  // GET LOGGED-IN USER
+  // =====================================================
 
-  // =========================
-  // INITIAL LOAD + AUTO UPDATE
-  // =========================
+  function getLoggedInUser() {
+    try {
+      const storedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
+        )
+
+      if (!storedUser) {
+        return null
+      }
+
+      return JSON.parse(
+        storedUser
+      )
+    } catch (error) {
+      console.error(
+        "User session error:",
+        error
+      )
+
+      return null
+    }
+  }
+
+  // =====================================================
+  // NOTIFICATION ICON
+  // =====================================================
+
+  function getNotificationIcon(
+    notification
+  ) {
+    const type =
+      String(
+        notification.type || ""
+      ).toLowerCase()
+
+    if (type === "music") {
+      return "🎵"
+    }
+
+    if (type === "class") {
+      return "📅"
+    }
+
+    if (type === "task") {
+      return "✅"
+    }
+
+    if (
+      type === "payment" ||
+      type === "fee"
+    ) {
+      return "💳"
+    }
+
+    if (type === "event") {
+      return "🎫"
+    }
+
+    if (type === "announcement") {
+      return "📢"
+    }
+
+    if (type === "feedback") {
+      return "💬"
+    }
+
+    if (type === "booking") {
+      return "🎟️"
+    }
+
+    return "🔔"
+  }
+
+  // =====================================================
+  // FORMAT TIME
+  // =====================================================
+
+  function formatTime(createdAt) {
+    if (!createdAt) {
+      return "Recently"
+    }
+
+    const date =
+      new Date(createdAt)
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "Recently"
+    }
+
+    const now =
+      new Date()
+
+    const difference =
+      now.getTime() -
+      date.getTime()
+
+    if (difference < 0) {
+      return "Just now"
+    }
+
+    const minutes =
+      Math.floor(
+        difference /
+          (1000 * 60)
+      )
+
+    if (minutes < 1) {
+      return "Just now"
+    }
+
+    if (minutes < 60) {
+      return `${minutes} minute${
+        minutes === 1
+          ? ""
+          : "s"
+      } ago`
+    }
+
+    const hours =
+      Math.floor(
+        minutes / 60
+      )
+
+    if (hours < 24) {
+      return `${hours} hour${
+        hours === 1
+          ? ""
+          : "s"
+      } ago`
+    }
+
+    const days =
+      Math.floor(
+        hours / 24
+      )
+
+    if (days < 7) {
+      return `${days} day${
+        days === 1
+          ? ""
+          : "s"
+      } ago`
+    }
+
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      }
+    )
+  }
+
+  // =====================================================
+  // LOAD NOTIFICATIONS
+  // =====================================================
+
+  async function loadNotifications() {
+    try {
+      setLoading(true)
+      setError("")
+
+      const user =
+        getLoggedInUser()
+
+      if (!user) {
+        setNotifications([])
+
+        setError(
+          "Please login to view notifications."
+        )
+
+        return
+      }
+
+      const userId =
+        String(
+          user.id ||
+          user._id ||
+          user.userId ||
+          ""
+        ).trim()
+
+      if (!userId) {
+        setNotifications([])
+
+        setError(
+          "User ID is missing from your session."
+        )
+
+        return
+      }
+
+      const requestUrl =
+        `${API_URL}?userId=${encodeURIComponent(
+          userId
+        )}&_=${Date.now()}`
+
+      const response =
+        await fetch(
+          requestUrl,
+          {
+            method: "GET",
+            cache: "no-store",
+            headers:
+              getAuthHeaders()
+          }
+        )
+
+      const data =
+        await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            `Server returned ${response.status}`
+        )
+      }
+
+      if (
+        data.success !== true
+      ) {
+        throw new Error(
+          data.message ||
+            "Unable to load notifications."
+        )
+      }
+
+      if (
+        Array.isArray(
+          data.notifications
+        )
+      ) {
+        setNotifications(
+          data.notifications
+        )
+      } else {
+        setNotifications([])
+      }
+    } catch (error) {
+      console.error(
+        "Notification loading error:",
+        error
+      )
+
+      setNotifications([])
+
+      setError(
+        error.message ||
+          "Unable to load notifications from the database."
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
   useEffect(() => {
-
     loadNotifications()
 
-
-    window.addEventListener(
-      "storage",
-      loadNotifications
-    )
+    function handleNotificationsUpdated() {
+      loadNotifications()
+    }
 
     window.addEventListener(
       "notificationsUpdated",
-      loadNotifications
+      handleNotificationsUpdated
     )
 
+    window.addEventListener(
+      "storage",
+      handleNotificationsUpdated
+    )
 
     return () => {
+      window.removeEventListener(
+        "notificationsUpdated",
+        handleNotificationsUpdated
+      )
 
       window.removeEventListener(
         "storage",
-        loadNotifications
+        handleNotificationsUpdated
       )
-
-      window.removeEventListener(
-        "notificationsUpdated",
-        loadNotifications
-      )
-
     }
-
   }, [])
 
-
-  // =========================
+  // =====================================================
   // UNREAD COUNT
-  // =========================
+  // =====================================================
 
   const unreadCount =
     notifications.filter(
-      (notification) =>
-        notification.unread
+      notification =>
+        !notification.read
     ).length
 
-
-  // =========================
+  // =====================================================
   // MARK ONE AS READ
-  // =========================
+  // =====================================================
 
-  function markAsRead(id) {
-
+  async function markAsRead(id) {
     const selectedNotification =
       notifications.find(
-        (notification) =>
-          notification.id === id
+        notification =>
+          String(
+            notification.id
+          ) === String(id)
       )
-
 
     if (!selectedNotification) {
       return
     }
 
-
-    // Update screen
-
-    const updatedNotifications =
-      notifications.map(
-        (notification) =>
-          notification.id === id
-            ? {
-                ...notification,
-                unread: false
-              }
-            : notification
-      )
-
-
-    setNotifications(
-      updatedNotifications
-    )
-
-
-    // =========================
-    // CHECK TEACHER NOTIFICATION
-    // =========================
-
-    const teacherNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
-        )
-      ) || []
-
-
-    const isTeacherNotification =
-      teacherNotifications.some(
-        (notification) =>
-          notification.id === id
-      )
-
-
-    if (isTeacherNotification) {
-
-      const updatedTeacherNotifications =
-        teacherNotifications.map(
-          (notification) =>
-            notification.id === id
-              ? {
-                  ...notification,
-                  unread: false
-                }
-              : notification
-        )
-
-
-      localStorage.setItem(
-        "tantraTeacherNotifications",
-        JSON.stringify(
-          updatedTeacherNotifications
-        )
-      )
-
-    } else {
-
-      // =========================
-      // NORMAL STUDENT NOTIFICATION
-      // =========================
-
-      const studentNotifications =
-        JSON.parse(
-          localStorage.getItem(
-            "tantraNotifications"
-          )
-        ) || []
-
-
-      const updatedStudentNotifications =
-        studentNotifications.map(
-          (notification) =>
-            notification.id === id
-              ? {
-                  ...notification,
-                  unread: false
-                }
-              : notification
-        )
-
-
-      localStorage.setItem(
-        "tantraNotifications",
-        JSON.stringify(
-          updatedStudentNotifications
-        )
-      )
+    if (
+      selectedNotification.read
+    ) {
+      return
     }
 
-
-    // Update dashboard badge
-
-    window.dispatchEvent(
-      new Event(
-        "notificationsUpdated"
-      )
-    )
-  }
-
-
-  // =========================
-  // MARK ALL AS READ
-  // =========================
-
-  function markAllAsRead() {
-
-    const updatedNotifications =
-      notifications.map(
-        (notification) => ({
-          ...notification,
-          unread: false
-        })
-      )
-
+    // Optimistic update
 
     setNotifications(
-      updatedNotifications
-    )
-
-
-    // =========================
-    // STUDENT NOTIFICATIONS
-    // =========================
-
-    const studentNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraNotifications"
+      currentNotifications =>
+        currentNotifications.map(
+          notification =>
+            String(
+              notification.id
+            ) === String(id)
+              ? {
+                  ...notification,
+                  read: true
+                }
+              : notification
         )
-      ) || []
-
-
-    const updatedStudentNotifications =
-      studentNotifications.map(
-        (notification) => ({
-          ...notification,
-          unread: false
-        })
-      )
-
-
-    localStorage.setItem(
-      "tantraNotifications",
-      JSON.stringify(
-        updatedStudentNotifications
-      )
     )
 
-
-    // =========================
-    // TEACHER NOTIFICATIONS
-    // =========================
-
-    const teacherNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/${id}/read`,
+          {
+            method: "PUT",
+            headers:
+              getAuthHeaders()
+          }
         )
-      ) || []
 
+      const data =
+        await response.json()
 
-    const updatedTeacherNotifications =
-      teacherNotifications.map(
-        (notification) => ({
-          ...notification,
-          unread: false
-        })
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Unable to mark notification as read."
+        )
+      }
+    } catch (error) {
+      console.error(
+        "Mark notification error:",
+        error
       )
 
+      await loadNotifications()
+    }
+  }
 
-    localStorage.setItem(
-      "tantraTeacherNotifications",
-      JSON.stringify(
-        updatedTeacherNotifications
-      )
+  // =====================================================
+  // MARK ALL AS READ
+  // =====================================================
+
+  async function markAllAsRead() {
+    const user =
+      getLoggedInUser()
+
+    const userId =
+      String(
+        user?.id ||
+        user?._id ||
+        user?.userId ||
+        ""
+      ).trim()
+
+    if (!userId) {
+      return
+    }
+
+    setNotifications(
+      currentNotifications =>
+        currentNotifications.map(
+          notification => ({
+            ...notification,
+            read: true
+          })
+        )
     )
 
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/read-all?userId=${encodeURIComponent(
+            userId
+          )}`,
+          {
+            method: "PUT",
+            headers:
+              getAuthHeaders()
+          }
+        )
 
-    // Update dashboard badge
+      const data =
+        await response.json()
 
-    window.dispatchEvent(
-      new Event(
-        "notificationsUpdated"
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Unable to mark notifications as read."
+        )
+      }
+    } catch (error) {
+      console.error(
+        "Mark all notifications error:",
+        error
       )
+
+      await loadNotifications()
+    }
+  }
+
+  // =====================================================
+  // LOADING
+  // =====================================================
+
+  if (loading) {
+    return (
+      <div className="notifications-page">
+
+        <div className="notifications-header">
+
+          <div>
+            <p>
+              STAY UPDATED
+            </p>
+
+            <h1>
+              Notifications 🔔
+            </h1>
+
+            <span>
+              Loading your notifications...
+            </span>
+          </div>
+
+        </div>
+
+        <div className="no-notifications">
+
+          <div>
+            🔔
+          </div>
+
+          <h2>
+            Loading notifications...
+          </h2>
+
+          <p>
+            Please wait.
+          </p>
+
+        </div>
+
+      </div>
     )
   }
 
+  // =====================================================
+  // PAGE
+  // =====================================================
 
   return (
-
     <div className="notifications-page">
 
-      {/* =========================
-          HEADER
-      ========================= */}
+      {/* HEADER */}
 
       <div className="notifications-header">
 
@@ -404,24 +552,64 @@ function Notifications() {
 
         </div>
 
-
-        {unreadCount > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            alignItems: "center",
+            flexWrap: "wrap"
+          }}
+        >
 
           <button
-            className="mark-read-btn"
-            onClick={markAllAsRead}
+            type="button"
+            className="secondary-button"
+            onClick={
+              loadNotifications
+            }
           >
-            ✓ Mark all as read
+            🔄 Refresh
           </button>
 
-        )}
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              className="mark-read-btn"
+              onClick={
+                markAllAsRead
+              }
+            >
+              ✓ Mark all as read
+            </button>
+          )}
+
+        </div>
 
       </div>
 
+      {/* ERROR */}
 
-      {/* =========================
-          SUMMARY
-      ========================= */}
+      {error && (
+        <div className="login-error">
+
+          {error}
+
+          <button
+            type="button"
+            onClick={
+              loadNotifications
+            }
+            style={{
+              marginLeft: "12px"
+            }}
+          >
+            🔄 Retry
+          </button>
+
+        </div>
+      )}
+
+      {/* SUMMARY */}
 
       <div className="notification-summary">
 
@@ -441,7 +629,6 @@ function Notifications() {
 
         </div>
 
-
         <div className="notification-summary-card">
 
           <span>
@@ -460,10 +647,7 @@ function Notifications() {
 
       </div>
 
-
-      {/* =========================
-          NOTIFICATION LIST
-      ========================= */}
+      {/* NOTIFICATION LIST */}
 
       <div className="notifications-list">
 
@@ -488,15 +672,19 @@ function Notifications() {
         ) : (
 
           notifications.map(
-            (notification) => (
+            notification => (
 
               <div
-                className={`notification-card ${
-                  notification.unread
-                    ? "unread"
-                    : ""
-                }`}
-                key={notification.id}
+                key={
+                  notification.id
+                }
+                className={
+                  `notification-card ${
+                    !notification.read
+                      ? "unread"
+                      : ""
+                  }`
+                }
                 onClick={() =>
                   markAsRead(
                     notification.id
@@ -508,10 +696,11 @@ function Notifications() {
 
                 <div className="notification-icon-box">
 
-                  {notification.icon}
+                  {getNotificationIcon(
+                    notification
+                  )}
 
                 </div>
-
 
                 {/* CONTENT */}
 
@@ -521,34 +710,32 @@ function Notifications() {
 
                     <span className="notification-type">
 
-                      {notification.type}
+                      {notification.type ||
+                        "General"}
 
                     </span>
 
-
-                    {notification.unread && (
-
-                      <span className="unread-dot">
-                      </span>
-
+                    {!notification.read && (
+                      <span className="unread-dot" />
                     )}
 
                   </div>
 
-
                   <h2>
-                    {notification.title}
+                    {notification.title ||
+                      "Notification"}
                   </h2>
 
-
                   <p>
-                    {notification.message}
+                    {notification.message ||
+                      ""}
                   </p>
-
 
                   <span className="notification-time">
 
-                    {notification.time}
+                    {formatTime(
+                      notification.createdAt
+                    )}
 
                   </span>
 
@@ -564,9 +751,7 @@ function Notifications() {
       </div>
 
     </div>
-
   )
 }
-
 
 export default Notifications

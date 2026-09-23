@@ -1,201 +1,268 @@
-import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import React, { useEffect, useState } from "react";
 
-const defaultGalleryItems = [
-  {
-    id: "home-1",
-    image: "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b",
-    title: "Live Concert",
-    category: "Concert"
-  },
-  {
-    id: "home-2",
-    image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d",
-    title: "Music Practice",
-    category: "Learning"
-  },
-  {
-    id: "home-3",
-    image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0",
-    title: "Piano Performance",
-    category: "Performance"
-  },
-  {
-    id: "home-4",
-    image: "https://images.unsplash.com/photo-1524650359799-842906ca1c06",
-    title: "Guitar Session",
-    category: "Classes"
-  },
-  {
-    id: "home-5",
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
-    title: "Student Performance",
-    category: "Performance"
-  },
-  {
-    id: "home-6",
-    image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76",
-    title: "Music Workshop",
-    category: "Workshop"
-  }
-]
-
+const API_URL = "http://127.0.0.1:5000/api/gallery";
 
 function Gallery() {
 
-  const [galleryItems, setGalleryItems] =
-    useState(defaultGalleryItems)
+  const [galleryItems, setGalleryItems] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
 
-  // ==============================
-  // LOAD TEACHER GALLERY
-  // ==============================
+  // ==========================================
+  // LOAD GALLERY FROM MONGODB
+  // ==========================================
+
+  const loadGallery = async () => {
+
+    try {
+
+      setLoading(true);
+
+      const response = await fetch(API_URL);
+
+      const data = await response.json();
+
+      if (data.success) {
+
+        setGalleryItems(
+          data.gallery || []
+        );
+
+      } else {
+
+        console.error(
+          data.message ||
+          "Unable to load gallery"
+        );
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Gallery loading error:",
+        error
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+
+  // ==========================================
+  // LOAD WHEN PAGE OPENS
+  // ==========================================
 
   useEffect(() => {
 
-    function loadGallery() {
+    loadGallery();
 
-      const savedGallery =
-        JSON.parse(
-          localStorage.getItem("tantraGallery")
-        ) || []
+  }, []);
 
 
-      setGalleryItems([
-        ...savedGallery,
-        ...defaultGalleryItems
-      ])
+  // ==========================================
+  // CLOSE PHOTO
+  // ==========================================
 
-    }
+  const closePhoto = () => {
 
+    setSelectedPhoto(null);
 
-    loadGallery()
-
-
-    window.addEventListener(
-      "storage",
-      loadGallery
-    )
-
-
-    window.addEventListener(
-      "galleryUpdated",
-      loadGallery
-    )
-
-
-    return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadGallery
-      )
-
-
-      window.removeEventListener(
-        "galleryUpdated",
-        loadGallery
-      )
-
-    }
-
-  }, [])
-
-
-  // Show only first 6 photos
-  // on the Home page
-
-  const previewItems =
-    galleryItems.slice(0, 6)
+  };
 
 
   return (
 
-    <section className="gallery-section">
+    <div className="gallery-page">
 
+      {/* ======================================
+          PAGE HEADER
+      ====================================== */}
 
-      {/* ==============================
-          HEADER
-      ============================== */}
+      <div className="gallery-page-header">
 
-      <div className="gallery-home-header">
+        <h1>
+          Academy Gallery
+        </h1>
 
-        <div className="section-heading">
-
-          <p>
-            ACADEMY MEMORIES
-          </p>
-
-
-          <h2>
-            Gallery 🖼️
-          </h2>
-
-
-          <span>
-            Explore performances, concerts and special moments.
-          </span>
-
-        </div>
-
-
-        {/* ==============================
-            VIEW ALL
-            ============================== */}
-
-        <Link
-          to="/gallery"
-          className="gallery-view-all-btn"
-        >
-          🖼️ View All
-        </Link>
+        <p>
+          Explore beautiful moments from
+          Tantra Academy
+        </p>
 
       </div>
 
 
+      {/* ======================================
+          LOADING
+      ====================================== */}
 
-      {/* ==============================
-          GALLERY GRID
-          ============================== */}
+      {loading ? (
 
-      <div className="gallery-grid">
+        <div className="gallery-loading">
 
-        {previewItems.map((item) => (
+          <div className="gallery-loading-icon">
+            🖼️
+          </div>
+
+          <p>
+            Loading gallery...
+          </p>
+
+        </div>
+
+      ) : galleryItems.length === 0 ? (
+
+        /* ====================================
+           EMPTY GALLERY
+        ==================================== */
+
+        <div className="empty-gallery">
+
+          <div className="empty-gallery-icon">
+            🖼️
+          </div>
+
+          <h2>
+            No Photos Available
+          </h2>
+
+          <p>
+            Academy photos will appear here
+            when the teacher adds them.
+          </p>
+
+        </div>
+
+      ) : (
+
+        /* ====================================
+           GALLERY GRID
+        ==================================== */
+
+        <div className="gallery-grid">
+
+          {galleryItems.map((item) => (
+
+            <div
+              className="gallery-card"
+              key={item.id}
+              onClick={() =>
+                setSelectedPhoto(item)
+              }
+            >
+
+              {/* IMAGE */}
+
+              <div className="gallery-card-image">
+
+                <img
+                  src={item.image}
+                  alt={item.title}
+                />
+
+              </div>
+
+
+              {/* DETAILS */}
+
+              <div className="gallery-card-content">
+
+                <span className="gallery-category">
+
+                  {item.category}
+
+                </span>
+
+
+                <h3>
+
+                  {item.title}
+
+                </h3>
+
+              </div>
+
+            </div>
+
+          ))}
+
+        </div>
+
+      )}
+
+
+      {/* ======================================
+          PHOTO VIEW MODAL
+      ====================================== */}
+
+      {selectedPhoto && (
+
+        <div
+          className="gallery-photo-modal"
+          onClick={closePhoto}
+        >
 
           <div
-            className="gallery-card"
-            key={item.id}
+            className="gallery-photo-modal-content"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
           >
 
+            {/* CLOSE */}
+
+            <button
+              className="gallery-photo-close"
+              onClick={closePhoto}
+            >
+              ✕
+            </button>
+
+
+            {/* IMAGE */}
+
             <img
-              src={item.image}
-              alt={item.title}
+              src={selectedPhoto.image}
+              alt={selectedPhoto.title}
             />
 
 
-            <div className="gallery-overlay">
+            {/* DETAILS */}
 
-              <span>
-                {item.category}
+            <div className="gallery-photo-details">
+
+              <span className="gallery-category">
+
+                {selectedPhoto.category}
+
               </span>
 
+              <h2>
 
-              <h3>
-                {item.title}
-              </h3>
+                {selectedPhoto.title}
+
+              </h2>
 
             </div>
 
           </div>
 
-        ))}
+        </div>
 
-      </div>
+      )}
 
-    </section>
+    </div>
 
-  )
+  );
+
 }
 
-
-export default Gallery
+export default Gallery;

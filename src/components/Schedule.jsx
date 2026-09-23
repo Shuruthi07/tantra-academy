@@ -1,122 +1,158 @@
 import { useEffect, useState } from "react"
 
-const defaultScheduleItems = [
-  {
-    id: 1,
-    day: "10",
-    month: "SEP",
-    time: "5:00 PM",
-    title: "Vocal Training",
-    type: "Class",
-    room: "Music Studio 1"
-  },
-  {
-    id: 2,
-    day: "12",
-    month: "SEP",
-    time: "4:00 PM",
-    title: "Piano Practice",
-    type: "Practice",
-    room: "Studio 2"
-  },
-  {
-    id: 3,
-    day: "15",
-    month: "SEP",
-    time: "6:00 PM",
-    title: "Guitar Class",
-    type: "Class",
-    room: "Music Studio 3"
-  },
-  {
-    id: 4,
-    day: "25",
-    month: "SEP",
-    time: "6:00 PM",
-    title: "Annual Music Concert",
-    type: "Event",
-    room: "Main Auditorium"
-  }
-]
+const API_URL =
+  "http://127.0.0.1:5000/api/schedule"
+
 
 function Schedule() {
 
-  const [scheduleItems, setScheduleItems] = useState(
-    defaultScheduleItems
-  )
+  const [scheduleItems, setScheduleItems] =
+    useState([])
 
   const [selectedItem, setSelectedItem] =
     useState(null)
 
-  // Load teacher schedule
-  useEffect(() => {
+  const [loading, setLoading] =
+    useState(true)
 
-    function loadSchedule() {
 
-      const savedSchedule = JSON.parse(
-        localStorage.getItem("tantraSchedule") || "[]"
+  // =========================================
+  // JWT AUTH HEADERS
+  // =========================================
+
+  function getAuthHeaders() {
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
       )
 
-      if (savedSchedule.length > 0) {
+    return {
+      Authorization:
+        "Bearer " + token
+    }
+  }
 
-        const formattedSchedule = savedSchedule.map(
-          (item) => ({
-            ...item,
 
-            // Teacher-created classes are Classes
-            type: item.type || "Class"
-          })
+  // =========================================
+  // LOAD SCHEDULE FROM MONGODB
+  // =========================================
+
+  async function loadSchedule() {
+
+    try {
+
+      setLoading(true)
+
+      const response =
+        await fetch(
+          `${API_URL}/`,
+          {
+            method: "GET",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              ...getAuthHeaders()
+            }
+          }
         )
 
-        setScheduleItems(formattedSchedule)
+
+      if (!response.ok) {
+
+        throw new Error(
+          `Server returned ${response.status}`
+        )
+
+      }
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "MongoDB Schedule:",
+        data
+      )
+
+
+      if (
+        data.success &&
+        Array.isArray(data.schedule)
+      ) {
+
+        const formattedSchedule =
+          data.schedule.map(
+            (item) => ({
+
+              ...item,
+
+              type:
+                item.type ||
+                "Class"
+
+            })
+          )
+
+
+        setScheduleItems(
+          formattedSchedule
+        )
 
       } else {
 
-        setScheduleItems(defaultScheduleItems)
+        setScheduleItems([])
 
       }
+
+    } catch (error) {
+
+      console.error(
+        "Student Schedule API Error:",
+        error
+      )
+
+      setScheduleItems([])
+
+    } finally {
+
+      setLoading(false)
+
     }
+
+  }
+
+
+  // =========================================
+  // LOAD WHEN PAGE OPENS
+  // =========================================
+
+  useEffect(() => {
 
     loadSchedule()
-
-    // Listen for teacher schedule updates
-    window.addEventListener(
-      "scheduleUpdated",
-      loadSchedule
-    )
-
-    // Listen for changes from another browser tab
-    window.addEventListener(
-      "storage",
-      loadSchedule
-    )
-
-    return () => {
-
-      window.removeEventListener(
-        "scheduleUpdated",
-        loadSchedule
-      )
-
-      window.removeEventListener(
-        "storage",
-        loadSchedule
-      )
-    }
 
   }, [])
 
 
   return (
+
     <div className="schedule-page">
 
-      {/* HEADER */}
+
+      {/* =================================
+          HEADER
+      ================================= */}
 
       <div className="schedule-header">
 
         <div>
 
-          <p>MY CALENDAR</p>
+          <p>
+            MY CALENDAR
+          </p>
 
           <h1>
             Schedule 📅
@@ -129,22 +165,50 @@ function Schedule() {
 
         </div>
 
+
         <div className="schedule-count">
-          {scheduleItems.length} Scheduled
+
+          {scheduleItems.length}
+          {" "}
+          Scheduled
+
         </div>
 
       </div>
 
 
-      {/* SCHEDULE LIST */}
+      {/* =================================
+          SCHEDULE LIST
+      ================================= */}
 
       <div className="schedule-list">
 
-        {scheduleItems.length === 0 ? (
+        {loading ? (
 
           <div className="no-schedule">
 
-            <div>📅</div>
+            <div>
+              ⏳
+            </div>
+
+            <h2>
+              Loading schedule...
+            </h2>
+
+            <p>
+              Please wait while your
+              schedule is loaded.
+            </p>
+
+          </div>
+
+        ) : scheduleItems.length === 0 ? (
+
+          <div className="no-schedule">
+
+            <div>
+              📅
+            </div>
 
             <h2>
               No schedules yet
@@ -159,70 +223,79 @@ function Schedule() {
 
         ) : (
 
-          scheduleItems.map((item) => (
+          scheduleItems.map(
+            (item) => (
 
-            <div
-              className="schedule-card"
-              key={item.id}
-            >
-
-              {/* DATE */}
-
-              <div className="schedule-date">
-
-                <strong>
-                  {item.day}
-                </strong>
-
-                <span>
-                  {item.month}
-                </span>
-
-              </div>
-
-
-              {/* INFO */}
-
-              <div className="schedule-info">
-
-                <span className="schedule-type">
-                  {item.type || "Class"}
-                </span>
-
-                <h2>
-                  {item.title}
-                </h2>
-
-                <p>
-                  🕐 {item.time}
-                  &nbsp;&nbsp;
-                  📍 {item.room}
-                </p>
-
-              </div>
-
-
-              {/* VIEW */}
-
-              <button
-                className="schedule-view"
-                onClick={() =>
-                  setSelectedItem(item)
-                }
+              <div
+                className="schedule-card"
+                key={item.id}
               >
-                View Details
-              </button>
 
-            </div>
 
-          ))
+                {/* DATE */}
+
+                <div className="schedule-date">
+
+                  <strong>
+                    {item.day}
+                  </strong>
+
+                  <span>
+                    {item.month}
+                  </span>
+
+                </div>
+
+
+                {/* INFO */}
+
+                <div className="schedule-info">
+
+                  <span className="schedule-type">
+
+                    {item.type ||
+                      "Class"}
+
+                  </span>
+
+                  <h2>
+                    {item.title}
+                  </h2>
+
+                  <p>
+                    🕐 {item.time}
+                    &nbsp;&nbsp;
+                    📍 {item.room}
+                  </p>
+
+                </div>
+
+
+                {/* VIEW DETAILS */}
+
+                <button
+                  type="button"
+                  className="schedule-view"
+                  onClick={() =>
+                    setSelectedItem(item)
+                  }
+                >
+                  View Details
+                </button>
+
+              </div>
+
+            )
+          )
 
         )}
 
       </div>
 
 
-      {/* DETAILS MODAL */}
+      {/* =================================
+          DETAILS MODAL
+      ================================= */}
 
       {selectedItem && (
 
@@ -240,7 +313,11 @@ function Schedule() {
             }
           >
 
+
+            {/* CLOSE */}
+
             <button
+              type="button"
               className="schedule-modal-close"
               onClick={() =>
                 setSelectedItem(null)
@@ -259,12 +336,19 @@ function Schedule() {
               {selectedItem.title}
             </h2>
 
+
             <p className="schedule-detail-type">
-              {selectedItem.type || "Class"}
+
+              {selectedItem.type ||
+                "Class"}
+
             </p>
 
 
             <div className="schedule-details">
+
+
+              {/* DATE */}
 
               <div>
 
@@ -273,12 +357,17 @@ function Schedule() {
                 </span>
 
                 <strong>
-                  {selectedItem.day}{" "}
+
+                  {selectedItem.day}
+                  {" "}
                   {selectedItem.month}
+
                 </strong>
 
               </div>
 
+
+              {/* TIME */}
 
               <div>
 
@@ -293,6 +382,8 @@ function Schedule() {
               </div>
 
 
+              {/* LOCATION */}
+
               <div>
 
                 <span>
@@ -305,10 +396,30 @@ function Schedule() {
 
               </div>
 
+
+              {/* COURSE */}
+
+              {selectedItem.course && (
+
+                <div>
+
+                  <span>
+                    🎵 Course
+                  </span>
+
+                  <strong>
+                    {selectedItem.course}
+                  </strong>
+
+                </div>
+
+              )}
+
             </div>
 
 
             <button
+              type="button"
               className="close-details-btn"
               onClick={() =>
                 setSelectedItem(null)
@@ -324,7 +435,10 @@ function Schedule() {
       )}
 
     </div>
+
   )
+
 }
+
 
 export default Schedule

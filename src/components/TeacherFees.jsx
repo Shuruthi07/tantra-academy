@@ -1,299 +1,923 @@
-import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { useEffect, useMemo, useState } from "react"
+import {
+  Link,
+  useSearchParams
+} from "react-router-dom"
 
 
-const defaultStudents = [
-  {
-    id: 1,
-    name: "Arun Kumar",
-    course: "Vocal Training",
-    amount: 3000,
-    dueDate: "10 Sep 2026",
-    status: "Paid"
-  },
-  {
-    id: 2,
-    name: "Priya Sharma",
-    course: "Piano",
-    amount: 3000,
-    dueDate: "10 Sep 2026",
-    status: "Paid"
-  },
-  {
-    id: 3,
-    name: "Rahul Raj",
-    course: "Guitar",
-    amount: 3000,
-    dueDate: "10 Sep 2026",
-    status: "Pending"
-  },
-  {
-    id: 4,
-    name: "Ananya S",
-    course: "Vocal Training",
-    amount: 3000,
-    dueDate: "10 Sep 2026",
-    status: "Paid"
-  },
-  {
-    id: 5,
-    name: "Karthik M",
-    course: "Guitar",
-    amount: 3000,
-    dueDate: "10 Sep 2026",
-    status: "Pending"
-  },
-  {
-    id: 6,
-    name: "Meena Devi",
-    course: "Piano",
-    amount: 3000,
-    dueDate: "10 Sep 2026",
-    status: "Paid"
-  }
-]
+const STUDENTS_API =
+  "http://127.0.0.1:5000/api/admin/teacher-students"
+
+const FEES_API =
+  "http://127.0.0.1:5000/api/fees/"
+
+const NOTIFICATIONS_API =
+  "http://127.0.0.1:5000/api/notifications"
 
 
 function TeacherFees() {
 
-  const [students, setStudents] = useState(() =>
-    JSON.parse(
-      localStorage.getItem("tantraFees") || "null"
-    ) || defaultStudents
-  )
+  const [searchParams, setSearchParams] =
+    useSearchParams()
+
+  const selectedStudentId =
+    searchParams.get("studentId") || ""
 
 
-  const [search, setSearch] = useState("")
+  const [students, setStudents] =
+    useState([])
+
+  const [fees, setFees] =
+    useState([])
+
+  const [search, setSearch] =
+    useState("")
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState("")
+
+  const [showCreateFee, setShowCreateFee] =
+    useState(false)
+
+  // Used only for the Assign Fee modal
+  const [selectedStudent, setSelectedStudent] =
+    useState(null)
+
+  const [amount, setAmount] =
+    useState("3000")
+
+  const [month, setMonth] =
+    useState("September 2026")
+
+  const [dueDate, setDueDate] =
+    useState("10 Sep 2026")
+
+  const [creatingFee, setCreatingFee] =
+    useState(false)
 
 
-  // ==============================
-  // LOAD FEE DATA
-  // ==============================
+  // =====================================================
+  // JWT HEADERS
+  // =====================================================
 
-  useEffect(() => {
+  function getAuthHeaders() {
 
-    function loadFees() {
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
 
-      const savedFees =
-        JSON.parse(
-          localStorage.getItem("tantraFees") || "null"
+    return {
+      "Content-Type":
+        "application/json",
+
+      ...(token
+        ? {
+            Authorization:
+              `Bearer ${token}`
+          }
+        : {})
+    }
+  }
+
+
+  // =====================================================
+  // LOAD STUDENTS AND FEES
+  // =====================================================
+
+  async function loadData() {
+
+    try {
+
+      setLoading(true)
+      setError("")
+
+
+      const [
+        studentsResponse,
+        feesResponse
+      ] = await Promise.all([
+
+        fetch(
+          STUDENTS_API,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        ),
+
+        fetch(
+          FEES_API,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
         )
 
+      ])
 
-      if (savedFees) {
-        setStudents(savedFees)
-      } else {
-        setStudents(defaultStudents)
+
+      const studentsData =
+        await studentsResponse.json()
+
+      const feesData =
+        await feesResponse.json()
+
+
+      if (
+        !studentsResponse.ok ||
+        !studentsData.success
+      ) {
+
+        throw new Error(
+          studentsData.message ||
+          "Unable to load students."
+        )
+
       }
+
+
+      if (
+        !feesResponse.ok ||
+        !feesData.success
+      ) {
+
+        throw new Error(
+          feesData.message ||
+          "Unable to load fees."
+        )
+
+      }
+
+
+      setStudents(
+        Array.isArray(
+          studentsData.students
+        )
+          ? studentsData.students
+          : []
+      )
+
+
+      setFees(
+        Array.isArray(
+          feesData.fees
+        )
+          ? feesData.fees
+          : []
+      )
+
+
+    } catch (error) {
+
+      console.error(
+        "Teacher fees loading error:",
+        error
+      )
+
+      setError(
+        error.message ||
+        "Unable to load fee information."
+      )
+
+    } finally {
+
+      setLoading(false)
 
     }
 
+  }
 
-    loadFees()
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
+  useEffect(() => {
+
+    loadData()
 
 
-    window.addEventListener(
-      "storage",
-      loadFees
-    )
+    function handleFeesUpdated() {
+      loadData()
+    }
 
 
     window.addEventListener(
       "feesUpdated",
-      loadFees
+      handleFeesUpdated
     )
 
 
     return () => {
 
       window.removeEventListener(
-        "storage",
-        loadFees
-      )
-
-      window.removeEventListener(
         "feesUpdated",
-        loadFees
+        handleFeesUpdated
       )
 
     }
 
-  }, [])
+  }, [selectedStudentId])
 
 
-  // ==============================
-  // TOGGLE FEE STATUS
-  // ==============================
+  // =====================================================
+  // STUDENT FROM URL
+  // =====================================================
 
-  function toggleFeeStatus(id) {
+  const selectedStudentFromUrl =
+    useMemo(() => {
 
-    let changedStudent = null
+      if (!selectedStudentId) {
+        return null
+      }
 
+      return students.find(
+        student =>
+          String(
+            student.id ||
+            student._id
+          ) ===
+          String(
+            selectedStudentId
+          )
+      ) || null
 
-    const updatedStudents =
-      students.map((student) => {
-
-        if (student.id === id) {
-
-          changedStudent = {
-            ...student,
-            status:
-              student.status === "Paid"
-                ? "Pending"
-                : "Paid"
-          }
-
-          return changedStudent
-
-        }
-
-        return student
-
-      })
+    }, [
+      students,
+      selectedStudentId
+    ])
 
 
-    if (!changedStudent) {
-      return
-    }
+  // =====================================================
+  // GET STUDENT FEE
+  // =====================================================
 
+  function getStudentFee(
+    studentId
+  ) {
 
-    setStudents(updatedStudents)
-
-
-    localStorage.setItem(
-      "tantraFees",
-      JSON.stringify(updatedStudents)
-    )
-
-
-    // Update Student Payments page
-
-    window.dispatchEvent(
-      new Event("feesUpdated")
-    )
-
-
-    // ==============================
-    // STUDENT NOTIFICATION
-    // ==============================
-
-    const existingNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraNotifications"
-        ) || "[]"
+    const studentFees =
+      fees.filter(
+        fee =>
+          String(
+            fee.studentId
+          ) ===
+          String(
+            studentId
+          )
       )
 
 
-    const newNotification = {
+    if (
+      studentFees.length === 0
+    ) {
 
-      id: Date.now(),
-
-      icon:
-        changedStudent.status === "Paid"
-          ? "✅"
-          : "💳",
-
-      title:
-        changedStudent.status === "Paid"
-          ? "Fee payment updated"
-          : "Fee payment pending",
-
-      message:
-        changedStudent.status === "Paid"
-          ? `Your ${changedStudent.course} fee of ₹${Number(
-              changedStudent.amount || 0
-            ).toLocaleString()} has been marked as paid.`
-          : `Your ${changedStudent.course} fee of ₹${Number(
-              changedStudent.amount || 0
-            ).toLocaleString()} is pending.`,
-
-      type: "Fee",
-
-      time: "Just now",
-
-      unread: true
+      return null
 
     }
 
 
-    localStorage.setItem(
-      "tantraNotifications",
-      JSON.stringify([
-        newNotification,
-        ...existingNotifications
-      ])
+    return studentFees[0]
+
+  }
+
+
+  // =====================================================
+  // OPEN CREATE FEE
+  // =====================================================
+
+  function openCreateFee(
+    student
+  ) {
+
+    setSelectedStudent(
+      student
     )
 
+    setAmount(
+      "3000"
+    )
 
-    window.dispatchEvent(
-      new Event("notificationsUpdated")
+    setMonth(
+      "September 2026"
+    )
+
+    setDueDate(
+      "10 Sep 2026"
+    )
+
+    setShowCreateFee(
+      true
     )
 
   }
 
 
-  // ==============================
+  // =====================================================
+  // CREATE FEE
+  // =====================================================
+
+  async function createFee() {
+
+    if (!selectedStudent) {
+      return
+    }
+
+
+    if (
+      !amount ||
+      Number(amount) <= 0
+    ) {
+
+      alert(
+        "Please enter a valid fee amount."
+      )
+
+      return
+
+    }
+
+
+    if (
+      !month.trim()
+    ) {
+
+      alert(
+        "Please enter the fee month."
+      )
+
+      return
+
+    }
+
+
+    try {
+
+      setCreatingFee(
+        true
+      )
+
+
+      const studentId =
+        selectedStudent.id ||
+        selectedStudent._id
+
+
+      const response =
+        await fetch(
+          FEES_API,
+          {
+            method: "POST",
+
+            headers:
+              getAuthHeaders(),
+
+            body:
+              JSON.stringify({
+
+                studentId:
+                  String(
+                    studentId
+                  ),
+
+                month:
+                  month.trim(),
+
+                amount:
+                  Number(
+                    amount
+                  ),
+
+                dueDate:
+                  dueDate.trim()
+
+              })
+
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+
+        throw new Error(
+          data.message ||
+          "Unable to create fee."
+        )
+
+      }
+
+
+      // =========================================
+      // NOTIFY STUDENT
+      // =========================================
+
+      try {
+
+        await fetch(
+          NOTIFICATIONS_API,
+          {
+            method: "POST",
+
+            headers:
+              getAuthHeaders(),
+
+            body:
+              JSON.stringify({
+
+                userId:
+                  String(
+                    studentId
+                  ),
+
+                title:
+                  "New fee assigned 💳",
+
+                message:
+                  `Your ${month.trim()} academy fee of ₹${Number(
+                    amount
+                  ).toLocaleString(
+                    "en-IN"
+                  )} has been assigned.`,
+
+                type:
+                  "payment"
+
+              })
+
+          }
+        )
+
+      } catch (
+        notificationError
+      ) {
+
+        console.error(
+          "Student notification error:",
+          notificationError
+        )
+
+      }
+
+
+      setShowCreateFee(
+        false
+      )
+
+      setSelectedStudent(
+        null
+      )
+
+
+      await loadData()
+
+
+      window.dispatchEvent(
+        new Event(
+          "feesUpdated"
+        )
+      )
+
+
+      alert(
+        "Fee assigned successfully! 🎉"
+      )
+
+
+    } catch (error) {
+
+      console.error(
+        "Create fee error:",
+        error
+      )
+
+      alert(
+        error.message ||
+        "Unable to create fee."
+      )
+
+    } finally {
+
+      setCreatingFee(
+        false
+      )
+
+    }
+
+  }
+
+
+  // =====================================================
+  // MARK FEE AS PAID
+  // =====================================================
+
+  async function markAsPaid(
+    fee,
+    student
+  ) {
+
+    if (!fee?.id) {
+      return
+    }
+
+
+    const confirmPayment =
+      window.confirm(
+        `Mark ₹${Number(
+          fee.amount || 0
+        ).toLocaleString(
+          "en-IN"
+        )} fee as Paid for ${student.name}?`
+      )
+
+
+    if (!confirmPayment) {
+      return
+    }
+
+
+    try {
+
+      const response =
+        await fetch(
+          `${FEES_API}${fee.id}/pay`,
+          {
+            method: "PUT",
+            headers:
+              getAuthHeaders()
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+
+        throw new Error(
+          data.message ||
+          "Unable to update payment."
+        )
+
+      }
+
+
+      // =========================================
+      // NOTIFY STUDENT
+      // =========================================
+
+      try {
+
+        const studentId =
+          student.id ||
+          student._id
+
+
+        await fetch(
+          NOTIFICATIONS_API,
+          {
+            method: "POST",
+
+            headers:
+              getAuthHeaders(),
+
+            body:
+              JSON.stringify({
+
+                userId:
+                  String(
+                    studentId
+                  ),
+
+                title:
+                  "Fee payment updated ✅",
+
+                message:
+                  `Your ${fee.month} fee of ₹${Number(
+                    fee.amount || 0
+                  ).toLocaleString(
+                    "en-IN"
+                  )} has been marked as paid.`,
+
+                type:
+                  "payment"
+
+              })
+
+          }
+        )
+
+      } catch (
+        notificationError
+      ) {
+
+        console.error(
+          "Student notification error:",
+          notificationError
+        )
+
+      }
+
+
+      await loadData()
+
+
+      window.dispatchEvent(
+        new Event(
+          "feesUpdated"
+        )
+      )
+
+
+      alert(
+        "Payment marked as paid successfully! 🎉"
+      )
+
+
+    } catch (error) {
+
+      console.error(
+        "Payment update error:",
+        error
+      )
+
+      alert(
+        error.message ||
+        "Unable to update payment."
+      )
+
+    }
+
+  }
+
+
+  // =====================================================
   // SEARCH
-  // ==============================
+  // =====================================================
 
   const filteredStudents =
-    students.filter((student) =>
-      String(student.name || "")
-        .toLowerCase()
-        .includes(
+    students.filter(
+      student => {
+
+        const name =
+          String(
+            student.name ||
+            ""
+          ).toLowerCase()
+
+
+        const email =
+          String(
+            student.email ||
+            ""
+          ).toLowerCase()
+
+
+        const searchText =
           search.toLowerCase()
+
+
+        return (
+          name.includes(
+            searchText
+          ) ||
+          email.includes(
+            searchText
+          )
         )
+
+      }
     )
 
 
-  // ==============================
-  // PAID STUDENTS
-  // ==============================
+  // =====================================================
+  // STUDENT FEE ROWS
+  // =====================================================
 
-  const paidStudents =
-    students.filter(
-      (student) =>
-        student.status === "Paid"
+  const studentRows =
+    filteredStudents
+      .filter(
+        student => {
+
+          if (
+            !selectedStudentId
+          ) {
+            return true
+          }
+
+
+          const studentId =
+            student.id ||
+            student._id
+
+
+          return (
+            String(
+              studentId
+            ) ===
+            String(
+              selectedStudentId
+            )
+          )
+
+        }
+      )
+      .map(
+        student => {
+
+          const studentId =
+            student.id ||
+            student._id
+
+
+          const fee =
+            getStudentFee(
+              studentId
+            )
+
+
+          return {
+            student,
+            fee
+          }
+
+        }
+      )
+
+
+  // =====================================================
+  // FEES
+  // =====================================================
+
+  const paidFees =
+    fees.filter(
+      fee =>
+        fee.status ===
+        "Paid"
     )
 
 
-  // ==============================
-  // PENDING STUDENTS
-  // ==============================
-
-  const pendingStudents =
-    students.filter(
-      (student) =>
-        student.status === "Pending"
+  const pendingFees =
+    fees.filter(
+      fee =>
+        fee.status !==
+        "Paid"
     )
 
 
-  // ==============================
+  // =====================================================
   // TOTAL COLLECTED
-  // ==============================
+  // =====================================================
 
   const collectedAmount =
-    paidStudents.reduce(
-      (total, student) =>
+    paidFees.reduce(
+      (
+        total,
+        fee
+      ) =>
         total +
-        Number(student.amount || 0),
+        Number(
+          fee.amount ||
+          0
+        ),
       0
     )
 
 
-  // ==============================
+  // =====================================================
   // TOTAL PENDING
-  // ==============================
+  // =====================================================
 
   const pendingAmount =
-    pendingStudents.reduce(
-      (total, student) =>
+    pendingFees.reduce(
+      (
+        total,
+        fee
+      ) =>
         total +
-        Number(student.amount || 0),
+        Number(
+          fee.amount ||
+          0
+        ),
       0
     )
 
+
+  // =====================================================
+  // PAID STUDENTS
+  // =====================================================
+
+  const paidStudentIds =
+    new Set(
+      paidFees.map(
+        fee =>
+          String(
+            fee.studentId
+          )
+      )
+    )
+
+
+  // =====================================================
+  // PENDING STUDENTS
+  // =====================================================
+
+  const pendingStudentIds =
+    new Set(
+      pendingFees.map(
+        fee =>
+          String(
+            fee.studentId
+          )
+      )
+    )
+
+
+  // =====================================================
+  // SELECTED STUDENT AMOUNTS
+  // =====================================================
+
+  const selectedStudentPaidAmount =
+    studentRows.reduce(
+      (
+        total,
+        row
+      ) =>
+        total +
+        (
+          row.fee?.status ===
+          "Paid"
+            ? Number(
+                row.fee.amount ||
+                0
+              )
+            : 0
+        ),
+      0
+    )
+
+
+  const selectedStudentPendingAmount =
+    studentRows.reduce(
+      (
+        total,
+        row
+      ) =>
+        total +
+        (
+          row.fee &&
+          row.fee.status !==
+            "Paid"
+            ? Number(
+                row.fee.amount ||
+                0
+              )
+            : 0
+        ),
+      0
+    )
+
+
+  const selectedStudentIsPaid =
+    studentRows.some(
+      row =>
+        row.fee?.status ===
+        "Paid"
+    )
+
+
+  // =====================================================
+  // VIEW ALL STUDENTS
+  // =====================================================
+
+  function showAllStudents() {
+
+    setSearchParams({})
+
+  }
+
+
+  // =====================================================
+  // PAGE
+  // =====================================================
 
   return (
 
@@ -312,17 +936,35 @@ function TeacherFees() {
             FEE MANAGEMENT
           </p>
 
-
           <h1>
             Student Fees 💳
           </h1>
 
-
           <span>
-            Track monthly payments and pending fees.
+            {selectedStudentId
+              ? `Fee details for ${
+                  selectedStudentFromUrl?.name ||
+                  "selected student"
+                }.`
+              : "Track monthly payments and pending fees."}
           </span>
 
         </div>
+
+
+        {selectedStudentId && (
+
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={
+              showAllStudents
+            }
+          >
+            👥 View All Students
+          </button>
+
+        )}
 
       </div>
 
@@ -331,12 +973,107 @@ function TeacherFees() {
           BACK TO DASHBOARD
       ================================= */}
 
-      <Link
-        to="/teacher-dashboard"
-        className="teacher-fees-back"
-      >
-        Back to Dashboard
-      </Link>
+      {!selectedStudentId && (
+
+        <Link
+          to="/teacher-dashboard"
+          className="teacher-fees-back"
+        >
+          Back to Dashboard
+        </Link>
+
+      )}
+
+
+      {/* =================================
+          SELECTED STUDENT BANNER
+      ================================= */}
+
+      {selectedStudentId && (
+
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "16px 20px",
+            borderRadius: "14px",
+            background:
+              "linear-gradient(135deg,#f3e8ff,#ede9fe)",
+            border:
+              "1px solid #ddd6fe",
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+            gap: "15px"
+          }}
+        >
+
+          <div>
+
+            <strong
+              style={{
+                color: "#6d28d9",
+                fontSize: "16px"
+              }}
+            >
+              👤 Selected Student
+            </strong>
+
+            <span
+              style={{
+                marginLeft: "8px",
+                color: "#4c4560",
+                fontWeight: "700"
+              }}
+            >
+              {selectedStudentFromUrl?.name ||
+                "Student"}
+            </span>
+
+          </div>
+
+
+          {studentRows.length > 0 && (
+
+            <strong
+              style={{
+                color: "#7c3aed"
+              }}
+            >
+              Fee details available
+            </strong>
+
+          )}
+
+        </div>
+
+      )}
+
+
+      {/* =================================
+          ERROR
+      ================================= */}
+
+      {error && (
+
+        <div className="payment-error">
+
+          {error}
+
+          <button
+            onClick={
+              loadData
+            }
+            style={{
+              marginLeft: "12px"
+            }}
+          >
+            Retry
+          </button>
+
+        </div>
+
+      )}
 
 
       {/* =================================
@@ -357,11 +1094,20 @@ function TeacherFees() {
           <div>
 
             <p>
-              Total Collected
+              {selectedStudentId
+                ? "Student Paid"
+                : "Total Collected"}
             </p>
 
             <h2>
-              ₹{collectedAmount.toLocaleString()}
+              ₹
+              {(
+                selectedStudentId
+                  ? selectedStudentPaidAmount
+                  : collectedAmount
+              ).toLocaleString(
+                "en-IN"
+              )}
             </h2>
 
           </div>
@@ -369,7 +1115,7 @@ function TeacherFees() {
         </div>
 
 
-        {/* PENDING AMOUNT */}
+        {/* PENDING */}
 
         <div className="teacher-fee-summary-card">
 
@@ -380,11 +1126,20 @@ function TeacherFees() {
           <div>
 
             <p>
-              Pending Amount
+              {selectedStudentId
+                ? "Student Pending"
+                : "Pending Amount"}
             </p>
 
             <h2>
-              ₹{pendingAmount.toLocaleString()}
+              ₹
+              {(
+                selectedStudentId
+                  ? selectedStudentPendingAmount
+                  : pendingAmount
+              ).toLocaleString(
+                "en-IN"
+              )}
             </h2>
 
           </div>
@@ -392,7 +1147,7 @@ function TeacherFees() {
         </div>
 
 
-        {/* PAID STUDENTS */}
+        {/* STATUS */}
 
         <div className="teacher-fee-summary-card">
 
@@ -403,11 +1158,19 @@ function TeacherFees() {
           <div>
 
             <p>
-              Paid Students
+              {selectedStudentId
+                ? "Payment Status"
+                : "Paid Students"}
             </p>
 
             <h2>
-              {paidStudents.length}
+              {selectedStudentId
+                ? (
+                    selectedStudentIsPaid
+                      ? "Paid"
+                      : "Pending"
+                  )
+                : paidStudentIds.size}
             </h2>
 
           </div>
@@ -426,11 +1189,15 @@ function TeacherFees() {
           <div>
 
             <p>
-              Pending Students
+              {selectedStudentId
+                ? "Fee Records"
+                : "Pending Students"}
             </p>
 
             <h2>
-              {pendingStudents.length}
+              {selectedStudentId
+                ? studentRows.length
+                : pendingStudentIds.size}
             </h2>
 
           </div>
@@ -441,7 +1208,7 @@ function TeacherFees() {
 
 
       {/* =================================
-          FEE TABLE CARD
+          FEE TABLE
       ================================= */}
 
       <div className="teacher-fees-card">
@@ -456,174 +1223,502 @@ function TeacherFees() {
             </p>
 
             <h2>
-              Monthly Fee Status
+              {selectedStudentId
+                ? "Selected Student Fee"
+                : "Monthly Fee Status"}
             </h2>
 
           </div>
 
 
-          <input
-            type="text"
-            placeholder="Search student..."
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-          />
+          {!selectedStudentId && (
+
+            <input
+              type="text"
+              placeholder="Search student..."
+              value={
+                search
+              }
+              onChange={
+                event =>
+                  setSearch(
+                    event.target.value
+                  )
+              }
+            />
+
+          )}
 
         </div>
+
+
+        {/* =================================
+            LOADING
+        ================================= */}
+
+        {loading && (
+
+          <div className="no-fee-results">
+
+            <div>
+              ⏳
+            </div>
+
+            <h3>
+              Loading fee information...
+            </h3>
+
+          </div>
+
+        )}
 
 
         {/* =================================
             TABLE
         ================================= */}
 
-        {filteredStudents.length > 0 ? (
+        {!loading &&
+          studentRows.length > 0 && (
 
-          <div className="teacher-fees-table-wrapper">
+            <div className="teacher-fees-table-wrapper">
 
-            <table className="teacher-fees-table">
+              <table className="teacher-fees-table">
 
-              <thead>
+                <thead>
 
-                <tr>
+                  <tr>
 
-                  <th>
-                    Student
-                  </th>
+                    <th>
+                      Student
+                    </th>
 
-                  <th>
-                    Course
-                  </th>
+                    <th>
+                      Course
+                    </th>
 
-                  <th>
-                    Amount
-                  </th>
+                    <th>
+                      Amount
+                    </th>
 
-                  <th>
-                    Due Date
-                  </th>
+                    <th>
+                      Due Date
+                    </th>
 
-                  <th>
-                    Status
-                  </th>
+                    <th>
+                      Status
+                    </th>
 
-                  <th>
-                    Action
-                  </th>
+                    <th>
+                      Action
+                    </th>
 
-                </tr>
+                  </tr>
 
-              </thead>
-
-
-              <tbody>
-
-                {filteredStudents.map(
-                  (student) => (
-
-                    <tr
-                      key={student.id}
-                    >
-
-                      <td>
-
-                        <strong>
-                          {student.name}
-                        </strong>
-
-                      </td>
+                </thead>
 
 
-                      <td>
-                        {student.course}
-                      </td>
+                <tbody>
+
+                  {studentRows.map(
+                    ({
+                      student,
+                      fee
+                    }) => (
+
+                      <tr
+                        key={
+                          student.id ||
+                          student._id
+                        }
+                      >
+
+                        {/* STUDENT */}
+
+                        <td>
+
+                          <strong>
+                            {student.name}
+                          </strong>
+
+                          <br />
+
+                          <small>
+                            {student.email}
+                          </small>
+
+                        </td>
 
 
-                      <td>
-                        ₹{Number(
-                          student.amount || 0
-                        ).toLocaleString()}
-                      </td>
+                        {/* COURSE */}
+
+                        <td>
+                          {student.course ||
+                            student.program ||
+                            "Music Training"}
+                        </td>
 
 
-                      <td>
-                        {student.dueDate}
-                      </td>
+                        {/* AMOUNT */}
+
+                        <td>
+
+                          {fee ? (
+
+                            <>
+                              ₹
+                              {Number(
+                                fee.amount ||
+                                0
+                              ).toLocaleString(
+                                "en-IN"
+                              )}
+                            </>
+
+                          ) : (
+
+                            <span>
+                              —
+                            </span>
+
+                          )}
+
+                        </td>
 
 
-                      <td>
+                        {/* DUE DATE */}
 
-                        <span
-                          className={
-                            student.status === "Paid"
-                              ? "fee-paid"
-                              : "fee-pending"
-                          }
-                        >
+                        <td>
 
-                          {student.status === "Paid"
-                            ? "✓ Paid"
-                            : "⏳ Pending"}
+                          {fee
+                            ? fee.dueDate
+                            : "Not Assigned"}
 
-                        </span>
-
-                      </td>
+                        </td>
 
 
-                      <td>
+                        {/* STATUS */}
 
-                        <button
-                          className="fee-status-btn"
-                          onClick={() =>
-                            toggleFeeStatus(
-                              student.id
-                            )
-                          }
-                        >
+                        <td>
 
-                          Mark as{" "}
+                          {!fee && (
 
-                          {student.status === "Paid"
-                            ? "Pending"
-                            : "Paid"}
+                            <span className="fee-pending">
+                              Not Assigned
+                            </span>
 
-                        </button>
+                          )}
 
-                      </td>
 
-                    </tr>
+                          {fee &&
+                            fee.status ===
+                              "Paid" && (
 
-                  )
-                )}
+                              <span className="fee-paid">
+                                ✓ Paid
+                              </span>
 
-              </tbody>
+                            )}
 
-            </table>
 
-          </div>
+                          {fee &&
+                            fee.status !==
+                              "Paid" && (
 
-        ) : (
+                              <span className="fee-pending">
+                                ⏳ Pending
+                              </span>
 
-          <div className="no-fee-results">
+                            )}
 
-            <div>
-              🔍
+                        </td>
+
+
+                        {/* ACTION */}
+
+                        <td>
+
+                          {!fee && (
+
+                            <button
+                              className="fee-status-btn"
+                              onClick={() =>
+                                openCreateFee(
+                                  student
+                                )
+                              }
+                            >
+                              + Assign Fee
+                            </button>
+
+                          )}
+
+
+                          {fee &&
+                            fee.status !==
+                              "Paid" && (
+
+                              <button
+                                className="fee-status-btn"
+                                onClick={() =>
+                                  markAsPaid(
+                                    fee,
+                                    student
+                                  )
+                                }
+                              >
+                                Mark as Paid
+                              </button>
+
+                            )}
+
+
+                          {fee &&
+                            fee.status ===
+                              "Paid" && (
+
+                              <span>
+                                Completed ✓
+                              </span>
+
+                            )}
+
+                        </td>
+
+                      </tr>
+
+                    )
+                  )}
+
+                </tbody>
+
+              </table>
+
             </div>
 
-            <h3>
-              No student found
-            </h3>
+          )}
 
-            <p>
-              Try searching with a different student name.
-            </p>
+
+        {/* =================================
+            NO STUDENTS
+        ================================= */}
+
+        {!loading &&
+          studentRows.length === 0 && (
+
+            <div className="no-fee-results">
+
+              <div>
+                🔍
+              </div>
+
+              <h3>
+                {selectedStudentId
+                  ? "No fee record found"
+                  : "No student found"}
+              </h3>
+
+              <p>
+                {selectedStudentId
+                  ? "This student does not have a fee assigned yet."
+                  : "Try searching with a different student name."}
+              </p>
+
+
+              {selectedStudentFromUrl && (
+
+                <button
+                  className="fee-status-btn"
+                  onClick={() =>
+                    openCreateFee(
+                      selectedStudentFromUrl
+                    )
+                  }
+                >
+                  + Assign Fee
+                </button>
+
+              )}
+
+            </div>
+
+          )}
+
+      </div>
+
+
+      {/* =================================
+          CREATE FEE MODAL
+      ================================= */}
+
+      {showCreateFee &&
+        selectedStudent && (
+
+          <div
+            className="payment-qr-overlay"
+            onClick={() =>
+              setShowCreateFee(
+                false
+              )
+            }
+          >
+
+            <div
+              className="payment-qr-modal"
+              onClick={
+                event =>
+                  event.stopPropagation()
+              }
+            >
+
+              <button
+                className="payment-qr-close"
+                onClick={() =>
+                  setShowCreateFee(
+                    false
+                  )
+                }
+              >
+                ✕
+              </button>
+
+
+              <p className="payment-qr-label">
+                FEE MANAGEMENT
+              </p>
+
+
+              <h2>
+                Assign Monthly Fee 💳
+              </h2>
+
+
+              <p>
+
+                Student:
+                {" "}
+
+                <strong>
+                  {selectedStudent.name}
+                </strong>
+
+              </p>
+
+
+              {/* MONTH */}
+
+              <label>
+                Month
+              </label>
+
+              <input
+                type="text"
+                value={
+                  month
+                }
+                onChange={
+                  event =>
+                    setMonth(
+                      event.target.value
+                    )
+                }
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginTop: "6px",
+                  marginBottom: "14px"
+                }}
+              />
+
+
+              {/* AMOUNT */}
+
+              <label>
+                Amount
+              </label>
+
+              <input
+                type="number"
+                value={
+                  amount
+                }
+                onChange={
+                  event =>
+                    setAmount(
+                      event.target.value
+                    )
+                }
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginTop: "6px",
+                  marginBottom: "14px"
+                }}
+              />
+
+
+              {/* DUE DATE */}
+
+              <label>
+                Due Date
+              </label>
+
+              <input
+                type="text"
+                value={
+                  dueDate
+                }
+                onChange={
+                  event =>
+                    setDueDate(
+                      event.target.value
+                    )
+                }
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginTop: "6px",
+                  marginBottom: "20px"
+                }}
+              />
+
+
+              {/* CREATE */}
+
+              <button
+                className="payment-complete-btn"
+                onClick={
+                  createFee
+                }
+                disabled={
+                  creatingFee
+                }
+              >
+
+                {creatingFee
+                  ? "Creating..."
+                  : "✓ Assign Fee"}
+
+              </button>
+
+
+              {/* CANCEL */}
+
+              <button
+                className="payment-cancel-btn"
+                onClick={() =>
+                  setShowCreateFee(
+                    false
+                  )
+                }
+              >
+                Cancel
+              </button>
+
+            </div>
 
           </div>
 
         )}
-
-      </div>
 
     </div>
 

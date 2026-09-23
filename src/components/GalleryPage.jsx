@@ -1,136 +1,223 @@
 import { useEffect, useState } from "react"
 
+const API_URL =
+  "http://127.0.0.1:5000/api/gallery"
+
 const defaultGalleryItems = [
   {
     id: "default-1",
-    image: "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b",
+    image:
+      "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b",
     title: "Live Concert",
     category: "Concert"
   },
   {
     id: "default-2",
-    image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d",
+    image:
+      "https://images.unsplash.com/photo-1511379938547-c1f69419868d",
     title: "Music Practice",
     category: "Learning"
   },
   {
     id: "default-3",
-    image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0",
+    image:
+      "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0",
     title: "Piano Performance",
     category: "Performance"
   },
   {
     id: "default-4",
-    image: "https://images.unsplash.com/photo-1524650359799-842906ca1c06",
+    image:
+      "https://images.unsplash.com/photo-1524650359799-842906ca1c06",
     title: "Guitar Session",
     category: "Classes"
   },
   {
     id: "default-5",
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+    image:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
     title: "Student Performance",
     category: "Performance"
   },
   {
     id: "default-6",
-    image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76",
+    image:
+      "https://images.unsplash.com/photo-1507838153414-b4b713384a76",
     title: "Music Workshop",
     category: "Workshop"
   }
 ]
 
-
 function GalleryPage() {
-
   const [galleryItems, setGalleryItems] =
-    useState([])
-
+    useState(defaultGalleryItems)
 
   const [activeCategory, setActiveCategory] =
     useState("All")
 
-
   const [selectedImage, setSelectedImage] =
     useState(null)
 
+  const [loading, setLoading] =
+    useState(true)
 
+  // =====================================================
+  // AUTH HEADERS
+  // =====================================================
 
-  // ==============================
+  function getAuthHeaders() {
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+      "Content-Type":
+        "application/json",
+
+      ...(token
+        ? {
+            Authorization:
+              "Bearer " + token
+          }
+        : {})
+    }
+  }
+
+  // =====================================================
   // LOAD GALLERY
-  // ==============================
+  // =====================================================
+
+  async function loadGallery() {
+    try {
+      setLoading(true)
+
+      const response =
+        await fetch(API_URL, {
+          method: "GET",
+          headers:
+            getAuthHeaders(),
+          cache: "no-store"
+        })
+
+      const data =
+        await response.json()
+
+      console.log(
+        "Gallery response:",
+        response.status,
+        data
+      )
+
+      if (
+        response.ok &&
+        data.success
+      ) {
+        const mongoGallery =
+          Array.isArray(
+            data.gallery
+          )
+            ? data.gallery
+            : []
+
+        // Normalize MongoDB gallery data
+        const formattedGallery =
+          mongoGallery.map(
+            (item) => ({
+              ...item,
+
+              id:
+                item.id ||
+                item._id,
+
+              image:
+                item.image ||
+                item.imageUrl ||
+                item.url ||
+                "",
+
+              title:
+                item.title ||
+                "Academy Moment",
+
+              category:
+                item.category ||
+                "Other"
+            })
+          )
+
+        /*
+         * MongoDB items first,
+         * followed by the original
+         * default gallery.
+         */
+
+        setGalleryItems([
+          ...formattedGallery,
+          ...defaultGalleryItems
+        ])
+      } else {
+        setGalleryItems(
+          defaultGalleryItems
+        )
+      }
+    } catch (error) {
+      console.error(
+        "Gallery loading error:",
+        error
+      )
+
+      setGalleryItems(
+        defaultGalleryItems
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
   useEffect(() => {
-
-    function loadGallery() {
-
-      const savedGallery =
-        JSON.parse(
-          localStorage.getItem("tantraGallery")
-        ) || []
-
-
-      setGalleryItems([
-        ...savedGallery,
-        ...defaultGalleryItems
-      ])
-
-    }
-
-
     loadGallery()
 
-
-    window.addEventListener(
-      "storage",
-      loadGallery
-    )
-
+    function handleGalleryUpdated() {
+      loadGallery()
+    }
 
     window.addEventListener(
       "galleryUpdated",
-      loadGallery
+      handleGalleryUpdated
     )
 
-
     return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadGallery
-      )
-
-
       window.removeEventListener(
         "galleryUpdated",
-        loadGallery
+        handleGalleryUpdated
       )
-
     }
-
   }, [])
 
-
-
-  // ==============================
+  // =====================================================
   // CATEGORIES
-  // ==============================
+  // =====================================================
 
   const categories = [
     "All",
     ...new Set(
       galleryItems
         .map(
-          (item) => item.category
+          (item) =>
+            item.category
         )
         .filter(Boolean)
     )
   ]
 
-
-
-  // ==============================
+  // =====================================================
   // FILTER
-  // ==============================
+  // =====================================================
 
   const filteredGallery =
     activeCategory === "All"
@@ -141,16 +228,22 @@ function GalleryPage() {
             activeCategory
         )
 
+  // =====================================================
+  // CLOSE IMAGE
+  // =====================================================
 
+  function closeImage() {
+    setSelectedImage(null)
+  }
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
-
     <div className="gallery-page">
 
-
-      {/* ==============================
-          HEADER
-          ============================== */}
+      {/* HEADER */}
 
       <div className="gallery-page-header">
 
@@ -160,11 +253,9 @@ function GalleryPage() {
             CAPTURED MOMENTS
           </p>
 
-
           <h1>
             Our Gallery 🖼️
           </h1>
-
 
           <span>
             Explore performances, workshops and
@@ -176,41 +267,40 @@ function GalleryPage() {
       </div>
 
 
-
-      {/* ==============================
-          FILTER
-          ============================== */}
+      {/* FILTER */}
 
       <div className="student-gallery-filters">
 
-        {categories.map((category) => (
+        {categories.map(
+          (category) => (
 
-          <button
-            key={category}
-            type="button"
-            className={
-              activeCategory === category
-                ? "student-gallery-filter active"
-                : "student-gallery-filter"
-            }
-            onClick={() =>
-              setActiveCategory(category)
-            }
-          >
-            {category}
-          </button>
+            <button
+              key={category}
+              type="button"
+              className={
+                activeCategory ===
+                category
+                  ? "student-gallery-filter active"
+                  : "student-gallery-filter"
+              }
+              onClick={() =>
+                setActiveCategory(
+                  category
+                )
+              }
+            >
+              {category}
+            </button>
 
-        ))}
+          )
+        )}
 
       </div>
 
 
+      {/* LOADING */}
 
-      {/* ==============================
-          GALLERY
-          ============================== */}
-
-      {filteredGallery.length === 0 ? (
+      {loading ? (
 
         <div className="gallery-empty">
 
@@ -218,11 +308,31 @@ function GalleryPage() {
             🖼️
           </div>
 
+          <h2>
+            Loading Gallery...
+          </h2>
+
+          <p>
+            Please wait while we load
+            the latest academy moments.
+          </p>
+
+        </div>
+
+      ) : filteredGallery.length ===
+        0 ? (
+
+        /* EMPTY */
+
+        <div className="gallery-empty">
+
+          <div>
+            🖼️
+          </div>
 
           <h2>
             No photos available
           </h2>
-
 
           <p>
             Gallery photos will appear here.
@@ -232,92 +342,106 @@ function GalleryPage() {
 
       ) : (
 
+        /* GALLERY */
+
         <div className="gallery-grid">
 
-          {filteredGallery.map((item) => (
+          {filteredGallery.map(
+            (item, index) => (
 
-            <div
-              className="gallery-card"
-              key={item.id}
-              onClick={() =>
-                setSelectedImage(item)
-              }
-            >
+              <div
+                className="gallery-card"
+                key={
+                  item.id ||
+                  item._id ||
+                  `gallery-${index}`
+                }
+                onClick={() =>
+                  setSelectedImage(
+                    item
+                  )
+                }
+              >
 
-              <img
-                src={item.image}
-                alt={item.title}
-              />
+                <img
+                  src={item.image}
+                  alt={
+                    item.title ||
+                    "Gallery image"
+                  }
+                  onError={(event) => {
+                    event.currentTarget.style.display =
+                      "none"
+                  }}
+                />
 
+                <div className="gallery-overlay">
 
-              <div className="gallery-overlay">
+                  <span>
+                    {item.category}
+                  </span>
 
-                <span>
-                  {item.category}
-                </span>
+                  <h3>
+                    {item.title}
+                  </h3>
 
-
-                <h3>
-                  {item.title}
-                </h3>
+                </div>
 
               </div>
 
-            </div>
-
-          ))}
+            )
+          )}
 
         </div>
 
       )}
 
 
-
-      {/* ==============================
-          IMAGE PREVIEW
-          ============================== */}
+      {/* IMAGE MODAL */}
 
       {selectedImage && (
 
         <div
           className="gallery-modal-overlay"
-          onClick={() =>
-            setSelectedImage(null)
-          }
+          onClick={closeImage}
         >
 
           <div
             className="gallery-modal"
-            onClick={(e) =>
-              e.stopPropagation()
+            onClick={(event) =>
+              event.stopPropagation()
             }
           >
 
             <button
+              type="button"
               className="gallery-modal-close"
-              onClick={() =>
-                setSelectedImage(null)
-              }
+              onClick={closeImage}
             >
               ✕
             </button>
 
-
             <img
-              src={selectedImage.image}
-              alt={selectedImage.title}
+              src={
+                selectedImage.image
+              }
+              alt={
+                selectedImage.title
+              }
             />
-
 
             <div className="gallery-modal-content">
 
               <span>
-                {selectedImage.category}
+                {
+                  selectedImage.category
+                }
               </span>
 
-
               <h2>
-                {selectedImage.title}
+                {
+                  selectedImage.title
+                }
               </h2>
 
             </div>
@@ -329,9 +453,7 @@ function GalleryPage() {
       )}
 
     </div>
-
   )
 }
-
 
 export default GalleryPage

@@ -1,6 +1,34 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
+const SONGS_API =
+  "http://127.0.0.1:5000/api/admin/songs"
+
+
+// ============================================
+// AUTH HEADERS
+// ============================================
+
+function getAuthHeaders() {
+
+  const token =
+    sessionStorage.getItem(
+      "tantraAuthToken"
+    )
+
+  return {
+    "Content-Type": "application/json",
+
+    ...(token
+      ? {
+          Authorization:
+            "Bearer " + token
+        }
+      : {})
+  }
+}
+
+
 function TeacherDashboard() {
 
   // ==============================
@@ -98,7 +126,9 @@ function TeacherDashboard() {
   const [attendanceData, setAttendanceData] =
     useState(() =>
       JSON.parse(
-        localStorage.getItem("tantraAttendance")
+        localStorage.getItem(
+          "tantraAttendance"
+        )
       ) || defaultAttendance
     )
 
@@ -106,7 +136,9 @@ function TeacherDashboard() {
   const [studentsData, setStudentsData] =
     useState(() =>
       JSON.parse(
-        localStorage.getItem("tantraStudents")
+        localStorage.getItem(
+          "tantraStudents"
+        )
       ) || []
     )
 
@@ -114,7 +146,9 @@ function TeacherDashboard() {
   const [songsData, setSongsData] =
     useState(() =>
       JSON.parse(
-        localStorage.getItem("tantraSongs")
+        localStorage.getItem(
+          "tantraSongs"
+        )
       ) || []
     )
 
@@ -122,7 +156,9 @@ function TeacherDashboard() {
   const [feesData, setFeesData] =
     useState(() =>
       JSON.parse(
-        localStorage.getItem("tantraFees")
+        localStorage.getItem(
+          "tantraFees"
+        )
       ) || defaultFees
     )
 
@@ -137,45 +173,57 @@ function TeacherDashboard() {
 
       const savedAttendance =
         JSON.parse(
-          localStorage.getItem("tantraAttendance")
+          localStorage.getItem(
+            "tantraAttendance"
+          )
         )
 
 
       const savedStudents =
         JSON.parse(
-          localStorage.getItem("tantraStudents")
+          localStorage.getItem(
+            "tantraStudents"
+          )
         )
 
 
       const savedSongs =
         JSON.parse(
-          localStorage.getItem("tantraSongs")
+          localStorage.getItem(
+            "tantraSongs"
+          )
         )
 
 
       const savedFees =
         JSON.parse(
-          localStorage.getItem("tantraFees")
+          localStorage.getItem(
+            "tantraFees"
+          )
         )
 
 
       setAttendanceData(
-        savedAttendance || defaultAttendance
+        savedAttendance ||
+        defaultAttendance
       )
 
 
       setStudentsData(
-        savedStudents || []
+        savedStudents ||
+        []
       )
 
 
       setSongsData(
-        savedSongs || []
+        savedSongs ||
+        []
       )
 
 
       setFeesData(
-        savedFees || defaultFees
+        savedFees ||
+        defaultFees
       )
 
     }
@@ -264,16 +312,21 @@ function TeacherDashboard() {
   const pendingFees =
     feesData.filter(
       (student) =>
-        student.status === "Pending"
+        student.status ===
+        "Pending"
     ).length
 
 
   const totalAttendance =
     attendanceData.reduce(
-      (total, student) =>
+      (
+        total,
+        student
+      ) =>
         total +
         Number(
-          student.attendance || 0
+          student.attendance ||
+          0
         ),
       0
     )
@@ -304,27 +357,31 @@ function TeacherDashboard() {
   // TASK DATA
   // ==============================
 
-  const [task, setTask] = useState({
-    title: "",
-    course: "",
-    dueDate: "",
-    instructions: ""
-  })
+  const [task, setTask] =
+    useState({
+      title: "",
+      course: "",
+      dueDate: "",
+      instructions: ""
+    })
 
 
   // ==============================
   // SONG DATA
   // ==============================
 
-  const [song, setSong] = useState({
-    title: "",
-    artist: "",
-    course: "Vocal Training",
-    difficulty: "Beginner",
-    lyrics: "",
-    instructions: "",
-    audioLink: ""
-  })
+  const [song, setSong] =
+    useState({
+      title: "",
+      artist: "",
+      course:
+        "Vocal Training",
+      difficulty:
+        "Beginner",
+      lyrics: "",
+      instructions: "",
+      audioLink: ""
+    })
 
 
   const [published, setPublished] =
@@ -335,118 +392,274 @@ function TeacherDashboard() {
   // PUBLISH SONG
   // ==============================
 
-  function publishSong() {
+  async function publishSong() {
 
     if (!song.title.trim()) {
-      alert("Please enter the song name")
+
+      alert(
+        "Please enter the song name"
+      )
+
       return
     }
 
 
     if (!song.artist.trim()) {
-      alert("Please enter the artist name")
+
+      alert(
+        "Please enter the artist name"
+      )
+
       return
     }
 
 
-    const newSong = {
-      id: Date.now(),
-      title: song.title.trim(),
-      artist: song.artist.trim(),
-      course: song.course,
-      difficulty: song.difficulty,
-      lyrics: song.lyrics,
-      instructions: song.instructions,
-      audioLink: song.audioLink,
-      status: "New",
-      progress: 0
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+
+    if (!token) {
+
+      alert(
+        "Your login session has expired. Please login again."
+      )
+
+      return
     }
 
 
-    const existingSongs =
-      JSON.parse(
-        localStorage.getItem("tantraSongs")
-      ) || []
+    try {
 
+      // ==================================
+      // SAVE SONG TO MONGODB
+      // ==================================
 
-    const updatedSongs = [
-      ...existingSongs,
-      newSong
-    ]
+      const response =
+        await fetch(
+          SONGS_API,
+          {
+            method: "POST",
 
+            headers:
+              getAuthHeaders(),
 
-    localStorage.setItem(
-      "tantraSongs",
-      JSON.stringify(updatedSongs)
-    )
+            body:
+              JSON.stringify({
 
+                title:
+                  song.title.trim(),
 
-    setSongsData(updatedSongs)
+                artist:
+                  song.artist.trim(),
 
+                course:
+                  song.course.trim(),
 
-    window.dispatchEvent(
-      new Event("songsUpdated")
-    )
+                lyrics:
+                  song.lyrics.trim(),
 
+                instructions:
+                  song.instructions.trim(),
 
-    // ==============================
-    // STUDENT NOTIFICATION
-    // ==============================
+                audioLink:
+                  song.audioLink.trim(),
 
-    const existingNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
+                assignedStudentId:
+                  ""
+
+              })
+          }
         )
-      ) || []
 
 
-    const newNotification = {
-      id: Date.now() + 1,
-      icon: "🎵",
-      title: "New song assigned",
-      message:
-        `Your teacher added "${song.title}" by ${song.artist}.`,
-      type: "Music",
-      time: "Just now",
-      unread: true
+      const data =
+        await response.json()
+
+
+      if (
+        !response.ok ||
+        data.success === false
+      ) {
+
+        throw new Error(
+          data.message ||
+          "Unable to publish song."
+        )
+
+      }
+
+
+      // ==================================
+      // LOAD SONGS FROM MONGODB
+      // ==================================
+
+      const songsResponse =
+        await fetch(
+          SONGS_API,
+          {
+            method: "GET",
+
+            headers:
+              getAuthHeaders(),
+
+            cache:
+              "no-store"
+          }
+        )
+
+
+      const songsData =
+        await songsResponse.json()
+
+
+      if (
+        songsResponse.ok &&
+        songsData.success &&
+        Array.isArray(
+          songsData.songs
+        )
+      ) {
+
+        setSongsData(
+          songsData.songs
+        )
+
+
+        // Keep old dashboard
+        // localStorage synchronized
+
+        localStorage.setItem(
+          "tantraSongs",
+          JSON.stringify(
+            songsData.songs
+          )
+        )
+
+      }
+
+
+      // ==================================
+      // SAME TAB UPDATE
+      // ==================================
+
+      window.dispatchEvent(
+        new Event(
+          "songsUpdated"
+        )
+      )
+
+
+      // ==================================
+      // STUDENT NOTIFICATION
+      // ==================================
+
+      const existingNotifications =
+        JSON.parse(
+          localStorage.getItem(
+            "tantraTeacherNotifications"
+          )
+        ) || []
+
+
+      const newNotification = {
+
+        id:
+          Date.now() + 1,
+
+        icon:
+          "🎵",
+
+        title:
+          "New song assigned",
+
+        message:
+          `Your teacher added "${song.title}" by ${song.artist}.`,
+
+        type:
+          "Music",
+
+        time:
+          "Just now",
+
+        unread:
+          true
+
+      }
+
+
+      localStorage.setItem(
+        "tantraTeacherNotifications",
+
+        JSON.stringify([
+          newNotification,
+          ...existingNotifications
+        ])
+      )
+
+
+      window.dispatchEvent(
+        new Event(
+          "notificationsUpdated"
+        )
+      )
+
+
+      // ==================================
+      // SUCCESS MESSAGE
+      // ==================================
+
+      setPublished(true)
+
+
+      setTimeout(() => {
+
+        setShowSongForm(
+          false
+        )
+
+        setPublished(
+          false
+        )
+
+        setSong({
+
+          title: "",
+
+          artist: "",
+
+          course:
+            "Vocal Training",
+
+          difficulty:
+            "Beginner",
+
+          lyrics: "",
+
+          instructions: "",
+
+          audioLink: ""
+
+        })
+
+      }, 1500)
+
+
+    } catch (error) {
+
+      console.error(
+        "Teacher song publish error:",
+        error
+      )
+
+
+      alert(
+        error.message ||
+        "Unable to publish song. Please try again."
+      )
+
     }
-
-
-    localStorage.setItem(
-      "tantraTeacherNotifications",
-      JSON.stringify([
-        newNotification,
-        ...existingNotifications
-      ])
-    )
-
-
-    window.dispatchEvent(
-      new Event("notificationsUpdated")
-    )
-
-
-    setPublished(true)
-
-
-    setTimeout(() => {
-
-      setShowSongForm(false)
-
-      setPublished(false)
-
-      setSong({
-        title: "",
-        artist: "",
-        course: "Vocal Training",
-        difficulty: "Beginner",
-        lyrics: "",
-        instructions: "",
-        audioLink: ""
-      })
-
-    }, 1500)
 
   }
 
@@ -458,53 +671,87 @@ function TeacherDashboard() {
   function createTask() {
 
     if (!task.title.trim()) {
-      alert("Please enter the task title")
+
+      alert(
+        "Please enter the task title"
+      )
+
       return
     }
 
 
     if (!task.course.trim()) {
-      alert("Please enter the course")
+
+      alert(
+        "Please enter the course"
+      )
+
       return
     }
 
 
     if (!task.dueDate) {
-      alert("Please select a due date")
+
+      alert(
+        "Please select a due date"
+      )
+
       return
     }
 
 
     const newTask = {
-      id: Date.now(),
-      title: task.title.trim(),
-      course: task.course.trim(),
-      dueDate: task.dueDate,
-      instructions: task.instructions.trim(),
-      status: "Pending"
+
+      id:
+        Date.now(),
+
+      title:
+        task.title.trim(),
+
+      course:
+        task.course.trim(),
+
+      dueDate:
+        task.dueDate,
+
+      instructions:
+        task.instructions.trim(),
+
+      status:
+        "Pending"
+
     }
 
 
     const existingTasks =
       JSON.parse(
-        localStorage.getItem("tantraTasks")
+        localStorage.getItem(
+          "tantraTasks"
+        )
       ) || []
 
 
     const updatedTasks = [
+
       ...existingTasks,
+
       newTask
+
     ]
 
 
     localStorage.setItem(
       "tantraTasks",
-      JSON.stringify(updatedTasks)
+      JSON.stringify(
+        updatedTasks
+      )
     )
 
 
     window.dispatchEvent(
-      new Event("tasksUpdated")
+      new Event(
+        "tasksUpdated"
+      )
     )
 
 
@@ -521,19 +768,34 @@ function TeacherDashboard() {
 
 
     const taskNotification = {
-      id: Date.now() + 1,
-      icon: "✅",
-      title: "New practice task",
+
+      id:
+        Date.now() + 1,
+
+      icon:
+        "✅",
+
+      title:
+        "New practice task",
+
       message:
         `Your teacher assigned "${task.title}".`,
-      type: "Task",
-      time: "Just now",
-      unread: true
+
+      type:
+        "Task",
+
+      time:
+        "Just now",
+
+      unread:
+        true
+
     }
 
 
     localStorage.setItem(
       "tantraTeacherNotifications",
+
       JSON.stringify([
         taskNotification,
         ...studentNotifications
@@ -542,7 +804,9 @@ function TeacherDashboard() {
 
 
     window.dispatchEvent(
-      new Event("notificationsUpdated")
+      new Event(
+        "notificationsUpdated"
+      )
     )
 
 
@@ -552,14 +816,21 @@ function TeacherDashboard() {
 
 
     setTask({
+
       title: "",
+
       course: "",
+
       dueDate: "",
+
       instructions: ""
+
     })
 
 
-    setShowTaskForm(false)
+    setShowTaskForm(
+      false
+    )
 
   }
 
@@ -572,7 +843,9 @@ function TeacherDashboard() {
 
     <div className="teacher-dashboard">
 
-      {/* MAIN CONTENT */}
+      {/* ==========================================
+          MAIN CONTENT
+      ========================================== */}
 
       <main className="teacher-main">
 
@@ -606,7 +879,9 @@ function TeacherDashboard() {
         </div>
 
 
-        {/* STATISTICS */}
+        {/* ==========================================
+            STATISTICS
+        ========================================== */}
 
         <div className="teacher-stats">
 
@@ -633,7 +908,7 @@ function TeacherDashboard() {
           </div>
 
 
-          {/* AVERAGE ATTENDANCE */}
+          {/* ATTENDANCE */}
 
           <div className="teacher-stat-card">
 
@@ -704,7 +979,9 @@ function TeacherDashboard() {
         </div>
 
 
-        {/* QUICK ACTIONS */}
+        {/* ==========================================
+            QUICK ACTIONS
+        ========================================== */}
 
         <div className="teacher-section">
 
@@ -727,6 +1004,8 @@ function TeacherDashboard() {
 
           <div className="teacher-actions-grid">
 
+            {/* STUDENTS */}
+
             <Link
               to="/teacher-students"
               className="teacher-action-card"
@@ -746,6 +1025,8 @@ function TeacherDashboard() {
 
             </Link>
 
+
+            {/* ATTENDANCE */}
 
             <Link
               to="/teacher-attendance"
@@ -767,10 +1048,14 @@ function TeacherDashboard() {
             </Link>
 
 
+            {/* TEACH SONG */}
+
             <button
               className="teacher-action-card"
               onClick={() =>
-                setShowSongForm(true)
+                setShowSongForm(
+                  true
+                )
               }
             >
 
@@ -789,10 +1074,14 @@ function TeacherDashboard() {
             </button>
 
 
+            {/* CREATE TASK */}
+
             <button
               className="teacher-action-card"
               onClick={() =>
-                setShowTaskForm(true)
+                setShowTaskForm(
+                  true
+                )
               }
             >
 
@@ -815,7 +1104,9 @@ function TeacherDashboard() {
         </div>
 
 
-        {/* RECENT ACTIVITY */}
+        {/* ==========================================
+            RECENT ACTIVITY
+        ========================================== */}
 
         <div className="teacher-section">
 
@@ -915,12 +1206,18 @@ function TeacherDashboard() {
 
         <div
           className="song-modal-overlay"
+
           onClick={(e) => {
 
             if (
-              e.target === e.currentTarget
+              e.target ===
+              e.currentTarget
             ) {
-              setShowSongForm(false)
+
+              setShowSongForm(
+                false
+              )
+
             }
 
           }}
@@ -930,8 +1227,11 @@ function TeacherDashboard() {
 
             <button
               className="modal-close"
+
               onClick={() =>
-                setShowSongForm(false)
+                setShowSongForm(
+                  false
+                )
               }
             >
               ✕
@@ -948,51 +1248,93 @@ function TeacherDashboard() {
             </h2>
 
 
+            {/* SONG TITLE */}
+
             <input
               type="text"
+
               placeholder="Song title"
-              value={song.title}
+
+              value={
+                song.title
+              }
+
               onChange={(e) =>
                 setSong({
+
                   ...song,
-                  title: e.target.value
+
+                  title:
+                    e.target.value
+
                 })
               }
             />
 
 
+            {/* ARTIST */}
+
             <input
               type="text"
+
               placeholder="Artist name"
-              value={song.artist}
+
+              value={
+                song.artist
+              }
+
               onChange={(e) =>
                 setSong({
+
                   ...song,
-                  artist: e.target.value
+
+                  artist:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* COURSE */}
 
             <input
               type="text"
+
               placeholder="Course"
-              value={song.course}
+
+              value={
+                song.course
+              }
+
               onChange={(e) =>
                 setSong({
+
                   ...song,
-                  course: e.target.value
+
+                  course:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* DIFFICULTY */}
 
             <select
-              value={song.difficulty}
+              value={
+                song.difficulty
+              }
+
               onChange={(e) =>
                 setSong({
+
                   ...song,
-                  difficulty: e.target.value
+
+                  difficulty:
+                    e.target.value
+
                 })
               }
             >
@@ -1020,57 +1362,99 @@ function TeacherDashboard() {
             </select>
 
 
+            {/* LYRICS */}
+
             <textarea
               placeholder="Lyrics / authorized learning material"
-              value={song.lyrics}
+
+              value={
+                song.lyrics
+              }
+
               onChange={(e) =>
                 setSong({
+
                   ...song,
-                  lyrics: e.target.value
+
+                  lyrics:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* INSTRUCTIONS */}
 
             <textarea
               placeholder="Teaching instructions"
-              value={song.instructions}
+
+              value={
+                song.instructions
+              }
+
               onChange={(e) =>
                 setSong({
+
                   ...song,
-                  instructions: e.target.value
+
+                  instructions:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* AUDIO */}
 
             <input
               type="url"
+
               placeholder="Audio link"
-              value={song.audioLink}
+
+              value={
+                song.audioLink
+              }
+
               onChange={(e) =>
                 setSong({
+
                   ...song,
-                  audioLink: e.target.value
+
+                  audioLink:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* SUCCESS */}
 
             {published && (
 
               <p className="publish-success">
+
                 🎉 Song published successfully!
+
               </p>
 
             )}
 
 
+            {/* PUBLISH BUTTON */}
+
             <button
               className="publish-song-btn"
-              onClick={publishSong}
+
+              onClick={
+                publishSong
+              }
             >
+
               Publish Song 🎵
+
             </button>
 
           </div>
@@ -1088,12 +1472,18 @@ function TeacherDashboard() {
 
         <div
           className="song-modal-overlay"
+
           onClick={(e) => {
 
             if (
-              e.target === e.currentTarget
+              e.target ===
+              e.currentTarget
             ) {
-              setShowTaskForm(false)
+
+              setShowTaskForm(
+                false
+              )
+
             }
 
           }}
@@ -1103,8 +1493,11 @@ function TeacherDashboard() {
 
             <button
               className="modal-close"
+
               onClick={() =>
-                setShowTaskForm(false)
+                setShowTaskForm(
+                  false
+                )
               }
             >
               ✕
@@ -1121,61 +1514,110 @@ function TeacherDashboard() {
             </h2>
 
 
+            {/* TASK TITLE */}
+
             <input
               type="text"
+
               placeholder="Task title"
-              value={task.title}
+
+              value={
+                task.title
+              }
+
               onChange={(e) =>
                 setTask({
+
                   ...task,
-                  title: e.target.value
+
+                  title:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* COURSE */}
 
             <input
               type="text"
+
               placeholder="Course"
-              value={task.course}
+
+              value={
+                task.course
+              }
+
               onChange={(e) =>
                 setTask({
+
                   ...task,
-                  course: e.target.value
+
+                  course:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* DUE DATE */}
 
             <input
               type="date"
-              value={task.dueDate}
+
+              value={
+                task.dueDate
+              }
+
               onChange={(e) =>
                 setTask({
+
                   ...task,
-                  dueDate: e.target.value
+
+                  dueDate:
+                    e.target.value
+
                 })
               }
             />
 
+
+            {/* INSTRUCTIONS */}
 
             <textarea
               placeholder="Task instructions"
-              value={task.instructions}
+
+              value={
+                task.instructions
+              }
+
               onChange={(e) =>
                 setTask({
+
                   ...task,
-                  instructions: e.target.value
+
+                  instructions:
+                    e.target.value
+
                 })
               }
             />
 
 
+            {/* CREATE */}
+
             <button
               className="publish-song-btn"
-              onClick={createTask}
+
+              onClick={
+                createTask
+              }
             >
+
               Create Task ✅
+
             </button>
 
           </div>
@@ -1189,5 +1631,6 @@ function TeacherDashboard() {
   )
 
 }
+
 
 export default TeacherDashboard

@@ -9,6 +9,7 @@ function Login() {
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
 
   // =========================================
@@ -18,7 +19,9 @@ function Login() {
   useEffect(() => {
 
     const rememberedEmail =
-      localStorage.getItem("tantraRememberedEmail")
+      localStorage.getItem(
+        "tantraRememberedEmail"
+      )
 
     if (rememberedEmail) {
 
@@ -34,12 +37,11 @@ function Login() {
   // LOGIN
   // =========================================
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
 
     e.preventDefault()
 
     setError("")
-
 
     const enteredEmail =
       email.trim().toLowerCase()
@@ -52,83 +54,288 @@ function Login() {
     // VALIDATION
     // =========================================
 
-    if (!enteredEmail || !enteredPassword) {
+    if (
+      !enteredEmail ||
+      !enteredPassword
+    ) {
 
       setError(
         "Please enter your email and password."
       )
 
       return
+
     }
 
 
-    // =========================================
-    // TEACHER LOGIN
-    // =========================================
+    try {
 
-    if (
-      enteredEmail ===
-        "teacher@tantraacademy.com" &&
-      enteredPassword ===
-        "teacher123"
-    ) {
+      setLoading(true)
 
-      const teacherUser = {
 
-        id: "teacher-001",
+      // =========================================
+      // LOGIN API
+      // =========================================
 
-        name: "M. Shuruthi",
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/auth/login",
+        {
+          method: "POST",
 
-        email: "teacher@tantraacademy.com",
+          headers: {
+            "Content-Type": "application/json"
+          },
 
-        phone: "",
+          body: JSON.stringify({
+            email: enteredEmail,
+            password: enteredPassword
+          })
+        }
+      )
 
-        accountType: "Teacher"
+
+      // =========================================
+      // READ RESPONSE
+      // =========================================
+
+      const data =
+        await response.json()
+
+
+      // =========================================
+      // LOGIN FAILED
+      // =========================================
+
+      if (!response.ok) {
+
+        setError(
+          data.message ||
+          "Invalid email or password."
+        )
+
+        return
 
       }
 
 
-      // Save teacher login
+      // =========================================
+      // GET USER
+      // =========================================
 
-      localStorage.setItem(
-        "tantraLoggedInUser",
-        JSON.stringify(teacherUser)
+      const user =
+        data.user
+
+
+      if (!user) {
+
+        setError(
+          "Login response did not contain user information."
+        )
+
+        return
+
+      }
+
+
+      // =========================================
+      // GET JWT TOKEN
+      // =========================================
+
+      const token =
+        data.token
+
+
+      if (!token) {
+
+        setError(
+          "Login successful, but authentication token was not received."
+        )
+
+        return
+
+      }
+
+
+      // =========================================
+      // CREATE LOGIN USER
+      // =========================================
+
+      const loggedInUser = {
+
+        id:
+          user.id,
+
+        name:
+          user.name,
+
+        email:
+          user.email,
+
+        phone:
+          user.phone || "",
+
+        role:
+          user.role,
+
+        accountType:
+          user.role === "admin"
+            ? "Admin"
+            : user.role === "teacher"
+              ? "Teacher"
+              : "Student"
+
+      }
+
+
+      // =========================================
+      // SAVE JWT TOKEN
+      // =========================================
+
+      sessionStorage.setItem(
+        "tantraAuthToken",
+        token
       )
 
 
-      // Save teacher profile
+      // =========================================
+      // SAVE LOGIN SESSION
+      // =========================================
+      //
+      // sessionStorage is different for each tab.
+      // This keeps Student/Admin/Teacher sessions
+      // separate between browser tabs.
+      //
+      // =========================================
 
-      const existingTeacherProfile =
-        JSON.parse(
-          localStorage.getItem(
-            "tantraTeacherProfile"
-          )
-        )
+      sessionStorage.setItem(
+        "tantraLoggedInUser",
+        JSON.stringify(loggedInUser)
+      )
+
+      sessionStorage.setItem(
+        "tantraCurrentUser",
+        JSON.stringify(loggedInUser)
+      )
 
 
-      if (!existingTeacherProfile) {
+      // =========================================
+      // REMOVE OLD LOCAL STORAGE LOGIN
+      // =========================================
+
+      localStorage.removeItem(
+        "tantraLoggedInUser"
+      )
+
+      localStorage.removeItem(
+        "tantraCurrentUser"
+      )
+
+
+      // =========================================
+      // STUDENT PROFILE
+      // =========================================
+
+      if (
+        user.role === "student"
+      ) {
 
         localStorage.setItem(
-          "tantraTeacherProfile",
+          "tantraStudentProfile",
           JSON.stringify({
-            name: "M. Shuruthi",
-            role: "Music Teacher",
-            bio: "Passionate about teaching music and helping students discover their musical potential.",
-            specialization: "Music & Vocal Training",
-            instagram: "https://www.instagram.com/",
-            spotify: "",
-            facebook: "",
-            youtube: "",
-            linkedin: ""
+
+            name:
+              user.name,
+
+            email:
+              user.email,
+
+            phone:
+              user.phone || ""
+
           })
         )
 
       }
 
 
-      // Remember email
+      // =========================================
+      // TEACHER PROFILE
+      // =========================================
 
-      if (rememberMe) {
+      if (
+        user.role === "teacher"
+      ) {
+
+        let existingTeacherProfile =
+          null
+
+        try {
+
+          existingTeacherProfile =
+            JSON.parse(
+              localStorage.getItem(
+                "tantraTeacherProfile"
+              )
+            )
+
+        } catch (error) {
+
+          existingTeacherProfile =
+            null
+
+        }
+
+
+        if (
+          !existingTeacherProfile
+        ) {
+
+          localStorage.setItem(
+            "tantraTeacherProfile",
+            JSON.stringify({
+
+              name:
+                user.name,
+
+              role:
+                "Music Teacher",
+
+              bio:
+                "Passionate about teaching music and helping students discover their musical potential.",
+
+              specialization:
+                "Music & Vocal Training",
+
+              instagram:
+                "https://www.instagram.com/",
+
+              spotify:
+                "",
+
+              facebook:
+                "",
+
+              youtube:
+                "",
+
+              linkedin:
+                ""
+
+            })
+          )
+
+        }
+
+      }
+
+
+      // =========================================
+      // REMEMBER EMAIL
+      // =========================================
+
+      if (
+        rememberMe
+      ) {
 
         localStorage.setItem(
           "tantraRememberedEmail",
@@ -144,152 +351,66 @@ function Login() {
       }
 
 
-      // IMPORTANT:
-      // Teacher goes ONLY to teacher dashboard
+      // =========================================
+      // ROLE-BASED REDIRECT
+      // =========================================
 
-      navigate(
-        "/teacher-dashboard",
-        {
-          replace: true
-        }
-      )
+      if (
+        user.role === "admin"
+      ) {
 
-      return
-    }
-
-
-    // =========================================
-    // STUDENT LOGIN
-    // =========================================
-
-    const accounts =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraAccounts"
+        navigate(
+          "/admin-dashboard",
+          {
+            replace: true
+          }
         )
-      ) || []
 
+      } else if (
+        user.role === "teacher"
+      ) {
 
-    const account =
-      accounts.find(
-        (item) =>
+        navigate(
+          "/teacher-dashboard",
+          {
+            replace: true
+          }
+        )
 
-          item.email &&
-          item.email.toLowerCase() ===
-            enteredEmail &&
+      } else {
 
-          item.password ===
-            enteredPassword
-      )
+        navigate(
+          "/student-dashboard",
+          {
+            replace: true
+          }
+        )
 
-
-    // =========================================
-    // INVALID LOGIN
-    // =========================================
-
-    if (!account) {
-
-      setError(
-        "Invalid email or password."
-      )
-
-      return
-    }
-
-
-    // =========================================
-    // CHECK ACCOUNT TYPE
-    // =========================================
-
-    if (
-      account.accountType !==
-      "Student"
-    ) {
-
-      setError(
-        "This account cannot access the student dashboard."
-      )
-
-      return
-    }
-
-
-    // =========================================
-    // SAVE STUDENT LOGIN
-    // =========================================
-
-    const studentUser = {
-
-      id: account.id,
-
-      name: account.name,
-
-      email: account.email,
-
-      phone: account.phone,
-
-      accountType: "Student"
-
-    }
-
-
-    localStorage.setItem(
-      "tantraLoggedInUser",
-      JSON.stringify(studentUser)
-    )
-
-
-    // =========================================
-    // SAVE STUDENT PROFILE
-    // =========================================
-
-    localStorage.setItem(
-      "tantraStudentProfile",
-      JSON.stringify({
-
-        name: account.name,
-
-        email: account.email,
-
-        phone: account.phone
-
-      })
-    )
-
-
-    // =========================================
-    // REMEMBER EMAIL
-    // =========================================
-
-    if (rememberMe) {
-
-      localStorage.setItem(
-        "tantraRememberedEmail",
-        enteredEmail
-      )
-
-    } else {
-
-      localStorage.removeItem(
-        "tantraRememberedEmail"
-      )
-
-    }
-
-
-    // =========================================
-    // STUDENT DASHBOARD
-    // =========================================
-
-    navigate(
-      "/student-dashboard",
-      {
-        replace: true
       }
-    )
+
+    } catch (error) {
+
+      console.error(
+        "Login error:",
+        error
+      )
+
+      setError(
+        "Unable to connect to the server. Please make sure the backend is running."
+      )
+
+    } finally {
+
+      setLoading(false)
+
+    }
 
   }
 
+
+  // =========================================
+  // UI
+  // =========================================
 
   return (
 
@@ -298,26 +419,31 @@ function Login() {
       <div className="login-card">
 
 
-        {/* LOGO */}
+        {/* =====================================
+            LOGO
+        ====================================== */}
 
         <div className="login-logo">
           🎵
         </div>
 
 
-        {/* TITLE */}
+        {/* =====================================
+            TITLE
+        ====================================== */}
 
         <h1>
           Welcome Back
         </h1>
-
 
         <p className="login-subtitle">
           Login to Tantra Academy
         </p>
 
 
-        {/* ERROR */}
+        {/* =====================================
+            ERROR
+        ====================================== */}
 
         {error && (
 
@@ -328,7 +454,9 @@ function Login() {
         )}
 
 
-        {/* FORM */}
+        {/* =====================================
+            FORM
+        ====================================== */}
 
         <form onSubmit={handleSubmit}>
 
@@ -379,7 +507,9 @@ function Login() {
           />
 
 
-          {/* OPTIONS */}
+          {/* =====================================
+              OPTIONS
+          ====================================== */}
 
           <div className="login-options">
 
@@ -412,19 +542,28 @@ function Login() {
           </div>
 
 
-          {/* LOGIN BUTTON */}
+          {/* =====================================
+              LOGIN BUTTON
+          ====================================== */}
 
           <button
             type="submit"
             className="login-submit"
+            disabled={loading}
           >
-            Login
+
+            {loading
+              ? "Logging in..."
+              : "Login"}
+
           </button>
 
         </form>
 
 
-        {/* DIVIDER */}
+        {/* =====================================
+            DIVIDER
+        ====================================== */}
 
         <div className="login-divider">
 
@@ -435,7 +574,9 @@ function Login() {
         </div>
 
 
-        {/* GOOGLE */}
+        {/* =====================================
+            GOOGLE
+        ====================================== */}
 
         <button
           type="button"
@@ -450,7 +591,9 @@ function Login() {
         </button>
 
 
-        {/* REGISTER */}
+        {/* =====================================
+            REGISTER
+        ====================================== */}
 
         <p className="register-text">
 
@@ -464,11 +607,13 @@ function Login() {
 
         </p>
 
+
       </div>
 
     </div>
 
   )
+
 }
 
 export default Login

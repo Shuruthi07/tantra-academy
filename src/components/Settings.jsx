@@ -1,35 +1,22 @@
 import { useEffect, useState } from "react"
 
-const defaultSettings = {
-  name: "Shuruthi",
-  email: "shuruthi@example.com",
-  phone: "+91 98765 43210",
+const API_URL =
+  "http://127.0.0.1:5000/api/auth"
 
+const defaultSettings = {
+  name: "",
+  email: "",
+  phone: "",
   classReminders: true,
   taskReminders: true,
   paymentReminders: true,
   academyAnnouncements: true,
-
   appearance: "Light"
 }
 
-
 function Settings() {
-
-  const [settings, setSettings] = useState(() => {
-
-    const saved =
-      JSON.parse(
-        localStorage.getItem("tantraSettings")
-      )
-
-    return {
-      ...defaultSettings,
-      ...(saved || {})
-    }
-
-  })
-
+  const [settings, setSettings] =
+    useState(defaultSettings)
 
   const [showPasswordForm, setShowPasswordForm] =
     useState(false)
@@ -46,33 +33,88 @@ function Settings() {
   const [saved, setSaved] =
     useState(false)
 
+  const [loading, setLoading] =
+    useState(true)
 
-  // =========================================
-  // APPLY THEME
-  // =========================================
+  const [saving, setSaving] =
+    useState(false)
+
+  // =====================================================
+  // AUTH HEADERS
+  // =====================================================
+
+  function getAuthHeaders() {
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+      "Content-Type": "application/json",
+
+      ...(token
+        ? {
+            Authorization:
+              "Bearer " + token
+          }
+        : {})
+    }
+  }
+
+  // =====================================================
+  // GET CURRENT USER
+  // =====================================================
+
+  function getCurrentUser() {
+    try {
+      const currentUser =
+        sessionStorage.getItem(
+          "tantraCurrentUser"
+        )
+
+      if (currentUser) {
+        return JSON.parse(currentUser)
+      }
+
+      const loggedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
+        )
+
+      if (loggedUser) {
+        return JSON.parse(loggedUser)
+      }
+    } catch (error) {
+      console.error(
+        "User session error:",
+        error
+      )
+    }
+
+    return null
+  }
+
+  // =====================================================
+  // APPLY APPEARANCE
+  // =====================================================
 
   useEffect(() => {
-
     function applyTheme(appearance) {
-
       const root =
         document.documentElement
 
-
       if (appearance === "Dark") {
-
         root.setAttribute(
           "data-theme",
           "dark"
         )
-
-      } else if (appearance === "System") {
-
+      } else if (
+        appearance === "System"
+      ) {
         const prefersDark =
           window.matchMedia(
             "(prefers-color-scheme: dark)"
           ).matches
-
 
         root.setAttribute(
           "data-theme",
@@ -80,419 +122,484 @@ function Settings() {
             ? "dark"
             : "light"
         )
-
       } else {
-
         root.setAttribute(
           "data-theme",
           "light"
         )
-
       }
-
     }
-
 
     applyTheme(
       settings.appearance
     )
-
   }, [settings.appearance])
 
+  // =====================================================
+  // LOAD PROFILE
+  // =====================================================
 
-  // =========================================
-  // LOAD SETTINGS
-  // =========================================
+  async function loadProfile() {
+    try {
+      setLoading(true)
 
-  useEffect(() => {
+      const response =
+        await fetch(
+          `${API_URL}/me`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
 
-    function loadSettings() {
+      const data =
+        await response.json()
 
-      const saved =
-        JSON.parse(
+      console.log(
+        "Settings profile:",
+        response.status,
+        data
+      )
+
+      if (
+        !response.ok ||
+        !data.success ||
+        !data.user
+      ) {
+        throw new Error(
+          data.message ||
+            "Unable to load profile."
+        )
+      }
+
+      const user =
+        data.user
+
+      let savedPreferences = {}
+
+      try {
+        const stored =
           localStorage.getItem(
             "tantraSettings"
           )
-        )
 
-
-      if (saved) {
-
-        setSettings({
-          ...defaultSettings,
-          ...saved
-        })
-
+        if (stored) {
+          savedPreferences =
+            JSON.parse(stored)
+        }
+      } catch {
+        savedPreferences = {}
       }
 
+      setSettings({
+        ...defaultSettings,
+        ...savedPreferences,
+
+        name:
+          user.name || "",
+
+        email:
+          user.email || "",
+
+        phone:
+          user.phone || ""
+      })
+
+      // Keep session user updated
+
+      sessionStorage.setItem(
+        "tantraCurrentUser",
+        JSON.stringify(user)
+      )
+
+      sessionStorage.setItem(
+        "tantraLoggedInUser",
+        JSON.stringify(user)
+      )
+    } catch (error) {
+      console.error(
+        "Settings loading error:",
+        error
+      )
+
+      const user =
+        getCurrentUser()
+
+      if (user) {
+        setSettings(
+          previous => ({
+            ...previous,
+
+            name:
+              user.name || "",
+
+            email:
+              user.email || "",
+
+            phone:
+              user.phone || ""
+          })
+        )
+      }
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
-    window.addEventListener(
-      "storage",
-      loadSettings
-    )
+  useEffect(() => {
+    loadProfile()
+
+    function handleSettingsUpdated() {
+      loadProfile()
+    }
 
     window.addEventListener(
       "settingsUpdated",
-      loadSettings
+      handleSettingsUpdated
     )
 
-
     return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadSettings
-      )
-
       window.removeEventListener(
         "settingsUpdated",
-        loadSettings
+        handleSettingsUpdated
       )
-
     }
-
   }, [])
 
-
-  // =========================================
+  // =====================================================
   // INPUT CHANGE
-  // =========================================
+  // =====================================================
 
-  function handleChange(e) {
-
+  function handleChange(event) {
     const {
       name,
       value
-    } = e.target
+    } = event.target
 
-
-    setSettings((previous) => ({
-      ...previous,
-      [name]: value
-    }))
-
+    setSettings(
+      previous => ({
+        ...previous,
+        [name]: value
+      })
+    )
   }
 
-
-  // =========================================
+  // =====================================================
   // CHECKBOX CHANGE
-  // =========================================
+  // =====================================================
 
-  function handleCheckboxChange(e) {
-
+  function handleCheckboxChange(event) {
     const {
       name,
       checked
-    } = e.target
+    } = event.target
 
-
-    setSettings((previous) => ({
-      ...previous,
-      [name]: checked
-    }))
-
+    setSettings(
+      previous => ({
+        ...previous,
+        [name]: checked
+      })
+    )
   }
 
-
-  // =========================================
+  // =====================================================
   // APPEARANCE
-  // =========================================
+  // =====================================================
 
   function changeAppearance(
     appearance
   ) {
-
-    setSettings((previous) => ({
-      ...previous,
-      appearance
-    }))
-
-
-    const currentSettings =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraSettings"
-        )
-      ) || {}
-
-
-    localStorage.setItem(
-      "tantraSettings",
-      JSON.stringify({
-        ...currentSettings,
+    setSettings(
+      previous => ({
+        ...previous,
         appearance
       })
     )
 
-
-    window.dispatchEvent(
-      new Event(
-        "settingsUpdated"
-      )
-    )
-
-  }
-
-
-  // =========================================
-  // SAVE SETTINGS
-  // =========================================
-
-  function saveSettings() {
-
-    localStorage.setItem(
-      "tantraSettings",
-      JSON.stringify(settings)
-    )
-
-
-    // Also update student profile
-    const loggedInUser =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraLoggedInUser"
-        )
-      )
-
-
-    if (loggedInUser) {
-
-      const updatedUser = {
-        ...loggedInUser,
-        name: settings.name,
-        email: settings.email,
-        phone: settings.phone
-      }
-
-
-      localStorage.setItem(
-        "tantraLoggedInUser",
-        JSON.stringify(updatedUser)
-      )
-
-
-      // Update registered account
-      const accounts =
+    try {
+      const currentSettings =
         JSON.parse(
           localStorage.getItem(
-            "tantraAccounts"
+            "tantraSettings"
           )
-        ) || []
-
-
-      const updatedAccounts =
-        accounts.map((account) => {
-
-          if (
-            account.id === loggedInUser.id ||
-            account.email === loggedInUser.email
-          ) {
-
-            return {
-              ...account,
-              name: settings.name,
-              email: settings.email,
-              phone: settings.phone
-            }
-
-          }
-
-          return account
-
-        })
-
+        ) || {}
 
       localStorage.setItem(
-        "tantraAccounts",
-        JSON.stringify(
-          updatedAccounts
-        )
+        "tantraSettings",
+        JSON.stringify({
+          ...currentSettings,
+          appearance
+        })
       )
-
+    } catch {
+      // Ignore local preference error
     }
-
 
     window.dispatchEvent(
       new Event(
         "settingsUpdated"
       )
     )
-
-
-    setSaved(true)
-
-
-    setTimeout(() => {
-      setSaved(false)
-    }, 2500)
-
   }
 
+  // =====================================================
+  // SAVE PROFILE
+  // =====================================================
 
-  // =========================================
+  async function saveSettings() {
+    if (!settings.name.trim()) {
+      alert(
+        "Please enter your name."
+      )
+      return
+    }
+
+    if (!settings.email.trim()) {
+      alert(
+        "Please enter your email."
+      )
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      const response =
+        await fetch(
+          `${API_URL}/profile`,
+          {
+            method: "PUT",
+
+            headers:
+              getAuthHeaders(),
+
+            body: JSON.stringify({
+              name:
+                settings.name.trim(),
+
+              email:
+                settings.email
+                  .trim()
+                  .toLowerCase(),
+
+              phone:
+                settings.phone.trim()
+            })
+          }
+        )
+
+      const data =
+        await response.json()
+
+      console.log(
+        "Save profile:",
+        response.status,
+        data
+      )
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.message ||
+            "Unable to save profile."
+        )
+      }
+
+      const updatedUser =
+        data.user
+
+      if (updatedUser) {
+        sessionStorage.setItem(
+          "tantraCurrentUser",
+          JSON.stringify(
+            updatedUser
+          )
+        )
+
+        sessionStorage.setItem(
+          "tantraLoggedInUser",
+          JSON.stringify(
+            updatedUser
+          )
+        )
+      }
+
+      // Save preferences locally
+
+      localStorage.setItem(
+        "tantraSettings",
+        JSON.stringify({
+          classReminders:
+            settings.classReminders,
+
+          taskReminders:
+            settings.taskReminders,
+
+          paymentReminders:
+            settings.paymentReminders,
+
+          academyAnnouncements:
+            settings.academyAnnouncements,
+
+          appearance:
+            settings.appearance
+        })
+      )
+
+      window.dispatchEvent(
+        new Event(
+          "settingsUpdated"
+        )
+      )
+
+      window.dispatchEvent(
+        new Event(
+          "studentProfileUpdated"
+        )
+      )
+
+      setSaved(true)
+
+      setTimeout(() => {
+        setSaved(false)
+      }, 2500)
+    } catch (error) {
+      console.error(
+        "Save settings error:",
+        error
+      )
+
+      alert(
+        error.message ||
+          "Unable to save settings."
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // =====================================================
   // CHANGE PASSWORD
-  // =========================================
+  // =====================================================
 
-  function handleChangePassword() {
-
-    // Check current password
-
+  async function handleChangePassword() {
     if (!currentPassword.trim()) {
-
       alert(
         "Please enter your current password."
       )
-
       return
-
     }
 
-
-    // Check new password length
-
     if (newPassword.length < 6) {
-
       alert(
         "New password must contain at least 6 characters."
       )
-
       return
-
     }
-
-
-    // Check password confirmation
 
     if (
       newPassword !==
       confirmPassword
     ) {
-
       alert(
         "New passwords do not match."
       )
-
       return
-
     }
 
+    try {
+      setSaving(true)
 
-    // Get logged-in student
+      const response =
+        await fetch(
+          `${API_URL}/change-password`,
+          {
+            method: "PUT",
 
-    const loggedInUser =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraLoggedInUser"
+            headers:
+              getAuthHeaders(),
+
+            body: JSON.stringify({
+              currentPassword,
+              newPassword
+            })
+          }
         )
+
+      const data =
+        await response.json()
+
+      console.log(
+        "Change password:",
+        response.status,
+        data
       )
 
-
-    if (!loggedInUser) {
-
-      alert(
-        "Student session not found. Please login again."
-      )
-
-      return
-
-    }
-
-
-    // Get registered accounts
-
-    const accounts =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraAccounts"
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.message ||
+            "Unable to change password."
         )
-      ) || []
+      }
 
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
 
-    // Find current student
-
-    const accountIndex =
-      accounts.findIndex(
-        (account) =>
-          account.id ===
-            loggedInUser.id ||
-          account.email ===
-            loggedInUser.email
-      )
-
-
-    if (accountIndex === -1) {
+      setShowPasswordForm(false)
 
       alert(
-        "Student account not found."
+        "Password changed successfully! ✅"
       )
-
-      return
-
-    }
-
-
-    // Check old password
-
-    if (
-      accounts[accountIndex].password !==
-      currentPassword
-    ) {
+    } catch (error) {
+      console.error(
+        "Password change error:",
+        error
+      )
 
       alert(
-        "Current password is incorrect."
+        error.message ||
+          "Unable to change password."
       )
-
-      return
-
+    } finally {
+      setSaving(false)
     }
-
-
-    // Update password
-
-    const updatedAccounts =
-      [...accounts]
-
-
-    updatedAccounts[accountIndex] = {
-      ...updatedAccounts[accountIndex],
-      password: newPassword
-    }
-
-
-    localStorage.setItem(
-      "tantraAccounts",
-      JSON.stringify(
-        updatedAccounts
-      )
-    )
-
-
-    // Clear form
-
-    setCurrentPassword("")
-    setNewPassword("")
-    setConfirmPassword("")
-
-    setShowPasswordForm(false)
-
-
-    alert(
-      "Password changed successfully! ✅"
-    )
-
   }
 
+  // =====================================================
+  // CURRENT USER ROLE
+  // =====================================================
+
+  const currentUser =
+    getCurrentUser()
+
+  const userRole =
+    String(
+      currentUser?.role ||
+        currentUser?.accountType ||
+        "Student"
+    )
+      .trim()
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
-
     <div className="settings-page">
 
-
-      {/* =================================
-          HEADER
-      ================================= */}
+      {/* HEADER */}
 
       <div className="settings-header">
 
@@ -502,24 +609,20 @@ function Settings() {
             ACCOUNT SETTINGS
           </p>
 
-
           <h1>
             Settings ⚙️
           </h1>
 
-
           <span>
-            Manage your profile and application preferences.
+            Manage your profile and
+            application preferences.
           </span>
 
         </div>
 
       </div>
 
-
-      {/* =================================
-          PROFILE
-      ================================= */}
+      {/* PROFILE */}
 
       <div className="settings-card">
 
@@ -535,79 +638,97 @@ function Settings() {
 
         </div>
 
+        {loading ? (
 
-        <div className="settings-form">
+          <p>
+            Loading profile...
+          </p>
 
-          <div className="settings-field">
+        ) : (
 
-            <label>
-              Full Name
-            </label>
+          <div className="settings-form">
 
-            <input
-              type="text"
-              name="name"
-              value={settings.name}
-              onChange={handleChange}
-            />
+            <div className="settings-field">
+
+              <label>
+                Full Name
+              </label>
+
+              <input
+                type="text"
+                name="name"
+                value={
+                  settings.name
+                }
+                onChange={
+                  handleChange
+                }
+                placeholder="Enter your full name"
+              />
+
+            </div>
+
+            <div className="settings-field">
+
+              <label>
+                Email
+              </label>
+
+              <input
+                type="email"
+                name="email"
+                value={
+                  settings.email
+                }
+                onChange={
+                  handleChange
+                }
+                placeholder="Enter your email"
+              />
+
+            </div>
+
+            <div className="settings-field">
+
+              <label>
+                Phone
+              </label>
+
+              <input
+                type="text"
+                name="phone"
+                value={
+                  settings.phone
+                }
+                onChange={
+                  handleChange
+                }
+                placeholder="Enter your phone number"
+              />
+
+            </div>
+
+            <div className="settings-field">
+
+              <label>
+                Role
+              </label>
+
+              <input
+                type="text"
+                value={userRole}
+                readOnly
+              />
+
+            </div>
 
           </div>
 
-
-          <div className="settings-field">
-
-            <label>
-              Email
-            </label>
-
-            <input
-              type="email"
-              name="email"
-              value={settings.email}
-              onChange={handleChange}
-            />
-
-          </div>
-
-
-          <div className="settings-field">
-
-            <label>
-              Phone
-            </label>
-
-            <input
-              type="text"
-              name="phone"
-              value={settings.phone}
-              onChange={handleChange}
-            />
-
-          </div>
-
-
-          <div className="settings-field">
-
-            <label>
-              Role
-            </label>
-
-            <input
-              type="text"
-              value="Student"
-              readOnly
-            />
-
-          </div>
-
-        </div>
+        )}
 
       </div>
 
-
-      {/* =================================
-          NOTIFICATIONS
-      ================================= */}
+      {/* NOTIFICATIONS */}
 
       <div className="settings-card">
 
@@ -618,14 +739,13 @@ function Settings() {
           </h2>
 
           <p>
-            Choose which notifications you want to receive.
+            Choose which notifications you
+            want to receive.
           </p>
 
         </div>
 
-
         <div className="settings-options">
-
 
           <label className="settings-option">
 
@@ -641,7 +761,6 @@ function Settings() {
 
             </div>
 
-
             <input
               type="checkbox"
               name="classReminders"
@@ -654,7 +773,6 @@ function Settings() {
             />
 
           </label>
-
 
           <label className="settings-option">
 
@@ -670,7 +788,6 @@ function Settings() {
 
             </div>
 
-
             <input
               type="checkbox"
               name="taskReminders"
@@ -683,7 +800,6 @@ function Settings() {
             />
 
           </label>
-
 
           <label className="settings-option">
 
@@ -699,7 +815,6 @@ function Settings() {
 
             </div>
 
-
             <input
               type="checkbox"
               name="paymentReminders"
@@ -712,7 +827,6 @@ function Settings() {
             />
 
           </label>
-
 
           <label className="settings-option">
 
@@ -727,7 +841,6 @@ function Settings() {
               </span>
 
             </div>
-
 
             <input
               type="checkbox"
@@ -746,10 +859,7 @@ function Settings() {
 
       </div>
 
-
-      {/* =================================
-          APPEARANCE
-      ================================= */}
+      {/* APPEARANCE */}
 
       <div className="settings-card">
 
@@ -765,22 +875,22 @@ function Settings() {
 
         </div>
 
-
         <div className="appearance-options">
-
 
           <button
             type="button"
             className={
-              settings.appearance === "Light"
+              settings.appearance ===
+              "Light"
                 ? "appearance-option active"
                 : "appearance-option"
             }
             onClick={() =>
-              changeAppearance("Light")
+              changeAppearance(
+                "Light"
+              )
             }
           >
-
             ☀️
 
             <span>
@@ -789,19 +899,20 @@ function Settings() {
 
           </button>
 
-
           <button
             type="button"
             className={
-              settings.appearance === "Dark"
+              settings.appearance ===
+              "Dark"
                 ? "appearance-option active"
                 : "appearance-option"
             }
             onClick={() =>
-              changeAppearance("Dark")
+              changeAppearance(
+                "Dark"
+              )
             }
           >
-
             🌙
 
             <span>
@@ -810,19 +921,20 @@ function Settings() {
 
           </button>
 
-
           <button
             type="button"
             className={
-              settings.appearance === "System"
+              settings.appearance ===
+              "System"
                 ? "appearance-option active"
                 : "appearance-option"
             }
             onClick={() =>
-              changeAppearance("System")
+              changeAppearance(
+                "System"
+              )
             }
           >
-
             💻
 
             <span>
@@ -835,10 +947,7 @@ function Settings() {
 
       </div>
 
-
-      {/* =================================
-          SECURITY
-      ================================= */}
+      {/* SECURITY */}
 
       <div className="settings-card">
 
@@ -854,14 +963,15 @@ function Settings() {
 
         </div>
 
-
         {!showPasswordForm ? (
 
           <button
             type="button"
             className="change-password-btn"
             onClick={() =>
-              setShowPasswordForm(true)
+              setShowPasswordForm(
+                true
+              )
             }
           >
             Change Password
@@ -871,7 +981,6 @@ function Settings() {
 
           <div className="password-form">
 
-
             <div className="settings-field">
 
               <label>
@@ -880,17 +989,18 @@ function Settings() {
 
               <input
                 type="password"
-                value={currentPassword}
-                onChange={(e) =>
+                value={
+                  currentPassword
+                }
+                onChange={event =>
                   setCurrentPassword(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter current password"
               />
 
             </div>
-
 
             <div className="settings-field">
 
@@ -900,17 +1010,18 @@ function Settings() {
 
               <input
                 type="password"
-                value={newPassword}
-                onChange={(e) =>
+                value={
+                  newPassword
+                }
+                onChange={event =>
                   setNewPassword(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Minimum 6 characters"
               />
 
             </div>
-
 
             <div className="settings-field">
 
@@ -920,17 +1031,18 @@ function Settings() {
 
               <input
                 type="password"
-                value={confirmPassword}
-                onChange={(e) =>
+                value={
+                  confirmPassword
+                }
+                onChange={event =>
                   setConfirmPassword(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Confirm new password"
               />
 
             </div>
-
 
             <div className="password-actions">
 
@@ -940,24 +1052,24 @@ function Settings() {
                 onClick={
                   handleChangePassword
                 }
+                disabled={saving}
               >
-                Update Password
+                {saving
+                  ? "Updating..."
+                  : "Update Password"}
               </button>
-
 
               <button
                 type="button"
                 className="password-cancel-btn"
                 onClick={() => {
-
-                  setShowPasswordForm(false)
+                  setShowPasswordForm(
+                    false
+                  )
 
                   setCurrentPassword("")
-
                   setNewPassword("")
-
                   setConfirmPassword("")
-
                 }}
               >
                 Cancel
@@ -971,40 +1083,34 @@ function Settings() {
 
       </div>
 
-
-      {/* =================================
-          SAVE SUCCESS
-      ================================= */}
+      {/* SUCCESS */}
 
       {saved && (
-
         <div className="settings-save-success">
-
           ✓ Settings saved successfully!
-
         </div>
-
       )}
 
-
-      {/* =================================
-          SAVE BUTTON
-      ================================= */}
+      {/* SAVE */}
 
       <button
         type="button"
         className="save-settings-btn"
-        onClick={saveSettings}
+        onClick={
+          saveSettings
+        }
+        disabled={
+          saving ||
+          loading
+        }
       >
-        💾 Save Changes
+        {saving
+          ? "Saving..."
+          : "💾 Save Changes"}
       </button>
 
-
     </div>
-
   )
-
 }
-
 
 export default Settings

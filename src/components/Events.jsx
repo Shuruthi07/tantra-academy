@@ -1,385 +1,754 @@
 import { useEffect, useState } from "react"
 
-const defaultEvents = [
-  {
-    id: 1,
-    date: "25",
-    month: "SEP",
-    title: "Annual Music Concert",
-    description:
-      "Experience an evening of amazing performances by our talented students.",
-    time: "6:00 PM",
-    location: "Tantra Academy Auditorium",
-    ticketPrice: 500
-  },
-  {
-    id: 2,
-    date: "12",
-    month: "OCT",
-    title: "Music Workshop",
-    description:
-      "Learn practical techniques from experienced musicians and teachers.",
-    time: "10:00 AM",
-    location: "Music Studio 1",
-    ticketPrice: 300
-  },
-  {
-    id: 3,
-    date: "08",
-    month: "NOV",
-    title: "Student Talent Competition",
-    description:
-      "A special stage for our students to showcase their musical talent.",
-    time: "4:00 PM",
-    location: "Main Auditorium",
-    ticketPrice: 200
-  }
-]
+const EVENTS_API =
+  "http://127.0.0.1:5000/api/events"
+
 
 function Events() {
 
-  // =========================
+  // =====================================================
   // EVENTS
-  // =========================
+  // =====================================================
 
-  const [events, setEvents] = useState(() => {
+  const [events, setEvents] =
+    useState([])
 
-    return (
-      JSON.parse(
-        localStorage.getItem("tantraEvents")
-      ) || defaultEvents
-    )
-
-  })
+  const [loading, setLoading] =
+    useState(true)
 
 
-  // =========================
+  // =====================================================
   // BOOKINGS
-  // =========================
+  // =====================================================
 
-  const [bookings, setBookings] = useState(() => {
-
-    return (
-      JSON.parse(
-        localStorage.getItem(
-          "tantraEventBookings"
-        )
-      ) || []
-    )
-
-  })
+  const [bookings, setBookings] =
+    useState([])
 
 
-  // =========================
+  // =====================================================
   // SELECTED EVENT
-  // =========================
+  // =====================================================
 
   const [selectedEvent, setSelectedEvent] =
     useState(null)
 
 
-  // =========================
-  // TICKET COUNT
-  // =========================
+  // =====================================================
+  // PAYMENT
+  // =====================================================
+
+  const [showPayment, setShowPayment] =
+    useState(false)
+
+
+  // =====================================================
+  // TICKETS
+  // =====================================================
 
   const [ticketCount, setTicketCount] =
     useState(1)
 
 
-  // =========================
-  // LOAD LIVE EVENTS
-  // =========================
+  // =====================================================
+  // BOOKING LOADING
+  // =====================================================
+
+  const [bookingLoading, setBookingLoading] =
+    useState(false)
+
+
+  // =====================================================
+  // AUTH HEADERS
+  // =====================================================
+
+  function getAuthHeaders() {
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+      "Content-Type":
+        "application/json",
+
+      ...(token
+        ? {
+            Authorization:
+              "Bearer " + token
+          }
+        : {})
+    }
+  }
+
+
+  // =====================================================
+  // GET LOGGED-IN STUDENT
+  // =====================================================
+
+  function getLoggedInStudent() {
+
+    try {
+
+      const currentUser =
+        sessionStorage.getItem(
+          "tantraCurrentUser"
+        )
+
+      if (currentUser) {
+
+        return JSON.parse(
+          currentUser
+        )
+
+      }
+
+
+      const loggedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
+        )
+
+      if (loggedUser) {
+
+        return JSON.parse(
+          loggedUser
+        )
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Student session error:",
+        error
+      )
+
+    }
+
+    return null
+  }
+
+
+  // =====================================================
+  // LOAD EVENTS
+  // =====================================================
+
+  async function loadEvents() {
+
+    try {
+
+      setLoading(true)
+
+      const token =
+        sessionStorage.getItem(
+          "tantraAuthToken"
+        )
+
+
+      if (!token) {
+
+        console.error(
+          "No authentication token found."
+        )
+
+        setEvents([])
+
+        return
+      }
+
+
+      const response =
+        await fetch(
+          EVENTS_API,
+          {
+            method: "GET",
+
+            headers:
+              getAuthHeaders(),
+
+            cache: "no-store"
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Events API:",
+        response.status,
+        data
+      )
+
+
+      if (
+        response.ok &&
+        data.success &&
+        Array.isArray(
+          data.events
+        )
+      ) {
+
+        setEvents(
+          data.events
+        )
+
+      } else {
+
+        console.error(
+          "Events API error:",
+          data
+        )
+
+        setEvents([])
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Events loading error:",
+        error
+      )
+
+      setEvents([])
+
+    } finally {
+
+      setLoading(false)
+
+    }
+
+  }
+
+
+  // =====================================================
+  // LOAD STUDENT BOOKINGS
+  // =====================================================
+
+  async function loadBookings() {
+
+    const student =
+      getLoggedInStudent()
+
+
+    if (!student) {
+
+      setBookings([])
+
+      return
+    }
+
+
+    const studentId =
+      student.id ||
+      student._id ||
+      student.userId
+
+
+    if (!studentId) {
+
+      setBookings([])
+
+      return
+    }
+
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+
+    if (!token) {
+
+      setBookings([])
+
+      return
+    }
+
+
+    try {
+
+      const allBookings = []
+
+
+      for (
+        const event of events
+      ) {
+
+        try {
+
+          const response =
+            await fetch(
+              `${EVENTS_API}/${event.id}/bookings`,
+              {
+                method: "GET",
+
+                headers:
+                  getAuthHeaders(),
+
+                cache: "no-store"
+              }
+            )
+
+
+          const data =
+            await response.json()
+
+
+          console.log(
+            "Booking API:",
+            event.id,
+            response.status,
+            data
+          )
+
+
+          if (
+            response.ok &&
+            data.success
+          ) {
+
+            const studentBookings =
+              (
+                data.bookings ||
+                []
+              ).filter(
+                booking =>
+                  String(
+                    booking.studentId
+                  ) ===
+                  String(studentId)
+              )
+
+
+            studentBookings.forEach(
+              booking => {
+
+                allBookings.push({
+
+                  ...booking,
+
+                  eventTitle:
+                    event.title,
+
+                  date:
+                    event.date,
+
+                  month:
+                    event.month,
+
+                  time:
+                    event.time,
+
+                  location:
+                    event.location,
+
+                  ticketPrice:
+                    event.ticketPrice
+
+                })
+
+              }
+            )
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Booking load error:",
+            error
+          )
+
+        }
+
+      }
+
+
+      setBookings(
+        allBookings
+      )
+
+    } catch (error) {
+
+      console.error(
+        "Student bookings error:",
+        error
+      )
+
+      setBookings([])
+
+    }
+
+  }
+
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
   useEffect(() => {
 
-    function loadEvents() {
-
-      const savedEvents =
-        JSON.parse(
-          localStorage.getItem("tantraEvents")
-        )
-
-      if (savedEvents) {
-        setEvents(savedEvents)
-      }
-
-    }
-
-
-    function loadBookings() {
-
-      const savedBookings =
-        JSON.parse(
-          localStorage.getItem(
-            "tantraEventBookings"
-          )
-        ) || []
-
-      setBookings(savedBookings)
-
-    }
-
-
-    window.addEventListener(
-      "storage",
-      loadEvents
-    )
-
-    window.addEventListener(
-      "storage",
-      loadBookings
-    )
-
-    window.addEventListener(
-      "eventsUpdated",
-      loadEvents
-    )
-
-    window.addEventListener(
-      "bookingUpdated",
-      loadBookings
-    )
-
-
-    return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadEvents
-      )
-
-      window.removeEventListener(
-        "storage",
-        loadBookings
-      )
-
-      window.removeEventListener(
-        "eventsUpdated",
-        loadEvents
-      )
-
-      window.removeEventListener(
-        "bookingUpdated",
-        loadBookings
-      )
-
-    }
+    loadEvents()
 
   }, [])
 
 
-  // =========================
+  // =====================================================
+  // LOAD BOOKINGS AFTER EVENTS
+  // =====================================================
+
+  useEffect(() => {
+
+    if (
+      !loading &&
+      events.length > 0
+    ) {
+
+      loadBookings()
+
+    }
+
+  }, [
+    events,
+    loading
+  ])
+
+
+  // =====================================================
+  // CHECK BOOKED
+  // =====================================================
+
+  function isEventBooked(
+    eventId
+  ) {
+
+    return bookings.some(
+      booking =>
+        String(
+          booking.eventId
+        ) ===
+        String(eventId)
+    )
+
+  }
+
+
+  // =====================================================
   // OPEN EVENT
-  // =========================
+  // =====================================================
 
   function openEvent(event) {
 
-    setSelectedEvent(event)
+    setSelectedEvent(
+      event
+    )
 
     setTicketCount(1)
+
+    setShowPayment(false)
 
   }
 
 
-  // =========================
+  // =====================================================
   // CLOSE EVENT
-  // =========================
+  // =====================================================
 
   function closeEvent() {
 
+    if (bookingLoading) {
+      return
+    }
+
     setSelectedEvent(null)
+
+    setShowPayment(false)
 
     setTicketCount(1)
 
   }
 
 
-  // =========================
-  // BOOK EVENT
-  // =========================
+  // =====================================================
+  // OPEN PAYMENT
+  // =====================================================
 
-  function bookEvent() {
+  function openPayment() {
 
     if (!selectedEvent) {
       return
     }
 
 
-    if (ticketCount < 1) {
+    const student =
+      getLoggedInStudent()
+
+
+    if (!student) {
 
       alert(
-        "Please select at least 1 ticket."
+        "Please login as a student first."
       )
 
       return
-
     }
 
 
-    // Check whether this student
-    // already has a booking
-
-    const alreadyBooked =
-      bookings.some(
-        (booking) =>
-          String(booking.eventId) ===
-          String(selectedEvent.id)
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
       )
 
 
-    if (alreadyBooked) {
+    if (!token) {
+
+      alert(
+        "Your login session has expired. Please login again."
+      )
+
+      return
+    }
+
+
+    const studentId =
+      student.id ||
+      student._id ||
+      student.userId
+
+
+    if (!studentId) {
+
+      alert(
+        "Student account information is missing."
+      )
+
+      return
+    }
+
+
+    if (
+      isEventBooked(
+        selectedEvent.id
+      )
+    ) {
 
       alert(
         "You have already booked this event. 🎟️"
       )
 
       return
-
     }
 
 
-    // =========================
-    // CREATE BOOKING
-    // =========================
+    if (
+      ticketCount < 1
+    ) {
 
-    const newBooking = {
-
-      id:
-        `TAN-${Math.floor(
-          10000 +
-          Math.random() * 90000
-        )}`,
-
-      eventId:
-        selectedEvent.id,
-
-      eventTitle:
-        selectedEvent.title,
-
-      date:
-        selectedEvent.date,
-
-      month:
-        selectedEvent.month,
-
-      time:
-        selectedEvent.time,
-
-      location:
-        selectedEvent.location,
-
-      tickets:
-        Number(ticketCount),
-
-      totalAmount:
-        Number(
-          selectedEvent.ticketPrice || 0
-        ) *
-        Number(ticketCount),
-
-      status:
-        "Confirmed"
-
-    }
-
-
-    const updatedBookings = [
-      ...bookings,
-      newBooking
-    ]
-
-
-    // Save booking
-
-    localStorage.setItem(
-      "tantraEventBookings",
-      JSON.stringify(
-        updatedBookings
+      alert(
+        "Please select at least 1 ticket."
       )
-    )
 
-
-    // Update page immediately
-
-    setBookings(
-      updatedBookings
-    )
-
-
-    // Tell other components
-
-    window.dispatchEvent(
-      new Event("bookingUpdated")
-    )
-
-
-    // =========================
-    // TEACHER NOTIFICATION
-    // =========================
-
-    const teacherNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
-        )
-      ) || []
-
-
-    const newNotification = {
-
-      id: Date.now(),
-
-      icon: "🎫",
-
-      title:
-        "New event booking",
-
-      message:
-        `A student booked ${ticketCount} ticket${ticketCount > 1 ? "s" : ""} for "${selectedEvent.title}".`,
-
-      type: "Event",
-
-      time:
-        "Just now",
-
-      unread:
-        true
-
+      return
     }
 
 
-    localStorage.setItem(
-      "tantraTeacherNotifications",
-      JSON.stringify([
-        newNotification,
-        ...teacherNotifications
-      ])
-    )
-
-
-    window.dispatchEvent(
-      new Event("notificationsUpdated")
-    )
-
-
-    alert(
-      "Event booking confirmed! 🎉"
-    )
-
-
-    closeEvent()
+    setShowPayment(true)
 
   }
 
+
+  // =====================================================
+  // CONFIRM PAYMENT
+  // =====================================================
+
+  async function confirmPayment() {
+
+    if (!selectedEvent) {
+      return
+    }
+
+
+    const student =
+      getLoggedInStudent()
+
+
+    if (!student) {
+
+      alert(
+        "Please login as a student first."
+      )
+
+      return
+    }
+
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+
+    if (!token) {
+
+      alert(
+        "Your login session has expired. Please login again."
+      )
+
+      return
+    }
+
+
+    const studentId =
+      student.id ||
+      student._id ||
+      student.userId
+
+
+    const studentName =
+      student.name ||
+      student.studentName ||
+      "Student"
+
+
+    if (!studentId) {
+
+      alert(
+        "Student account information is missing."
+      )
+
+      return
+    }
+
+
+    if (
+      isEventBooked(
+        selectedEvent.id
+      )
+    ) {
+
+      alert(
+        "You have already booked this event. 🎟️"
+      )
+
+      setShowPayment(false)
+
+      return
+    }
+
+
+    try {
+
+      setBookingLoading(true)
+
+
+      const response =
+        await fetch(
+          `${EVENTS_API}/${selectedEvent.id}/bookings`,
+          {
+            method: "POST",
+
+            headers:
+              getAuthHeaders(),
+
+            body:
+              JSON.stringify({
+
+                studentId:
+                  studentId,
+
+                studentName:
+                  studentName,
+
+                tickets:
+                  Number(
+                    ticketCount
+                  ),
+
+                paymentStatus:
+                  "Payment Submitted"
+
+              })
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Booking response:",
+        response.status,
+        data
+      )
+
+
+      if (!response.ok) {
+
+        alert(
+          data.message ||
+          "Unable to confirm booking."
+        )
+
+        return
+      }
+
+
+      // Reload bookings.
+
+      await loadBookings()
+
+
+      // Success.
+
+      alert(
+        "Payment submitted successfully! 🎉\n\nYour event ticket has been booked."
+      )
+
+
+      setShowPayment(false)
+
+      setSelectedEvent(null)
+
+      setTicketCount(1)
+
+    } catch (error) {
+
+      console.error(
+        "Event booking error:",
+        error
+      )
+
+      alert(
+        "Unable to connect to the server."
+      )
+
+    } finally {
+
+      setBookingLoading(false)
+
+    }
+
+  }
+
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
 
     <section className="events-section">
 
 
-      {/* =========================
+      {/* =================================================
           HEADER
-      ========================= */}
+      ================================================= */}
 
       <div className="section-heading">
 
@@ -401,145 +770,154 @@ function Events() {
       </div>
 
 
+      {/* =================================================
+          LOADING
+      ================================================= */}
 
-      {/* =========================
-          EVENTS
-      ========================= */}
+      {loading ? (
 
-      <div className="events-container">
+        <div className="no-events">
 
-        {events.length === 0 ? (
-
-          <div className="no-events-message">
-
-            <div>
-              🎫
-            </div>
-
-            <h2>
-              No upcoming events
-            </h2>
-
-            <p>
-              New academy events will appear here.
-            </p>
-
+          <div>
+            🎫
           </div>
 
-        ) : (
+          <h2>
+            Loading Events...
+          </h2>
 
-          events.map((event) => {
+          <p>
+            Please wait while we load academy events.
+          </p>
 
-            const isBooked =
-              bookings.some(
-                (booking) =>
-                  String(
-                    booking.eventId
-                  ) ===
-                  String(event.id)
-              )
+        </div>
 
+      ) : events.length === 0 ? (
 
-            return (
+        <div className="no-events">
 
-              <div
-                className="event-card"
-                key={event.id}
-              >
+          <div>
+            🎫
+          </div>
 
+          <h2>
+            No upcoming events
+          </h2>
 
-                {/* DATE */}
+          <p>
+            No academy events are available right now.
+          </p>
 
-                <div className="event-date">
+        </div>
 
-                  <strong>
-                    {event.date}
-                  </strong>
+      ) : (
 
-                  <span>
-                    {event.month}
-                  </span>
+        <div className="events-container">
 
-                </div>
+          {events.map(
+            event => {
 
-
-
-                {/* INFO */}
-
-                <div className="event-info">
-
-                  <h3>
-                    {event.title}
-                  </h3>
+              const isBooked =
+                isEventBooked(
+                  event.id
+                )
 
 
-                  <p>
-                    {event.description}
-                  </p>
+              return (
 
+                <div
+                  className="event-card"
+                  key={event.id}
+                >
 
-                  <div className="event-details">
+                  {/* DATE */}
 
-                    <span>
-                      🕐 {event.time}
-                    </span>
+                  <div className="event-date">
 
+                    <strong>
+                      {event.date}
+                    </strong>
 
                     <span>
-                      📍 {event.location}
+                      {event.month}
                     </span>
 
                   </div>
 
 
-                  {/* PRICE */}
+                  {/* EVENT INFO */}
 
-                  {event.ticketPrice !== undefined && (
+                  <div className="event-info">
 
-                    <div className="event-ticket-price">
+                    <h3>
+                      {event.title}
+                    </h3>
 
-                      🎟️ ₹
-                      {Number(
-                        event.ticketPrice
-                      ).toLocaleString()}
+
+                    <p>
+                      {event.description ||
+                        "Join us for this special academy event."}
+                    </p>
+
+
+                    <div className="event-details">
+
+                      <span>
+                        🕐 {event.time}
+                      </span>
+
+
+                      <span>
+                        📍 {event.location}
+                      </span>
+
+
+                      <span>
+                        🎟️ ₹
+                        {Number(
+                          event.ticketPrice || 0
+                        ).toLocaleString(
+                          "en-IN"
+                        )}
+                        {" / ticket"}
+                      </span>
 
                     </div>
 
-                  )}
 
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEvent(event)
+                      }
+                    >
 
+                      {isBooked
+                        ? "✓ View Booking"
+                        : "View Details →"}
 
-                  <button
-                    onClick={() =>
-                      openEvent(event)
-                    }
-                  >
+                    </button>
 
-                    {isBooked
-                      ? "✓ View Booking"
-                      : "View Details →"}
-
-                  </button>
+                  </div>
 
                 </div>
 
-              </div>
+              )
 
-            )
+            }
+          )}
 
-          })
+        </div>
 
-        )}
-
-      </div>
-
+      )}
 
 
-      {/* =========================
+      {/* =================================================
           EVENT DETAILS MODAL
-      ========================= */}
+      ================================================= */}
 
-      {selectedEvent && (
+      {selectedEvent &&
+        !showPayment && (
 
         <div
           className="event-modal-overlay"
@@ -548,21 +926,20 @@ function Events() {
 
           <div
             className="event-modal"
-            onClick={(e) =>
+            onClick={e =>
               e.stopPropagation()
             }
           >
 
-
             {/* CLOSE */}
 
             <button
+              type="button"
               className="event-modal-close"
               onClick={closeEvent}
             >
               ✕
             </button>
-
 
 
             {/* DATE */}
@@ -580,11 +957,9 @@ function Events() {
             </div>
 
 
-
             <p className="event-modal-label">
               UPCOMING EVENT
             </p>
-
 
 
             <h2>
@@ -592,17 +967,17 @@ function Events() {
             </h2>
 
 
-
             <p className="event-modal-description">
-              {selectedEvent.description}
-            </p>
 
+              {selectedEvent.description ||
+                "Join us for this special academy event."}
+
+            </p>
 
 
             {/* DETAILS */}
 
             <div className="event-modal-details">
-
 
               <div>
 
@@ -615,7 +990,6 @@ function Events() {
                 </strong>
 
               </div>
-
 
 
               <div>
@@ -631,7 +1005,6 @@ function Events() {
               </div>
 
 
-
               <div>
 
                 <span>
@@ -642,7 +1015,9 @@ function Events() {
                   ₹
                   {Number(
                     selectedEvent.ticketPrice || 0
-                  ).toLocaleString()}
+                  ).toLocaleString(
+                    "en-IN"
+                  )}
                 </strong>
 
               </div>
@@ -650,19 +1025,10 @@ function Events() {
             </div>
 
 
+            {/* ALREADY BOOKED */}
 
-            {/* =========================
-                ALREADY BOOKED
-            ========================= */}
-
-            {bookings.some(
-              (booking) =>
-                String(
-                  booking.eventId
-                ) ===
-                String(
-                  selectedEvent.id
-                )
+            {isEventBooked(
+              selectedEvent.id
             ) ? (
 
               <div className="event-already-booked">
@@ -686,87 +1052,112 @@ function Events() {
 
               <>
 
+                {/* TICKET BOX */}
 
-                {/* TICKET COUNT */}
+                <div className="ticket-booking-box">
 
-                <div className="event-ticket-selector">
+                  <div>
 
-                  <label>
-                    Number of Tickets
-                  </label>
-
-
-                  <div className="ticket-counter">
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTicketCount(
-                          Math.max(
-                            1,
-                            ticketCount - 1
-                          )
-                        )
-                      }
-                    >
-                      −
-                    </button>
-
+                    <span>
+                      Ticket Price
+                    </span>
 
                     <strong>
-                      {ticketCount}
+                      ₹
+                      {Number(
+                        selectedEvent.ticketPrice || 0
+                      ).toLocaleString(
+                        "en-IN"
+                      )}
                     </strong>
 
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTicketCount(
-                          ticketCount + 1
+
+                  <div className="ticket-quantity">
+
+                    <span>
+                      Number of Tickets
+                    </span>
+
+
+                    <div className="quantity-controls">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTicketCount(
+                            Math.max(
+                              1,
+                              ticketCount - 1
+                            )
+                          )
+                        }
+                      >
+                        −
+                      </button>
+
+
+                      <strong>
+                        {ticketCount}
+                      </strong>
+
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTicketCount(
+                            Math.min(
+                              10,
+                              ticketCount + 1
+                            )
+                          )
+                        }
+                      >
+                        +
+                      </button>
+
+                    </div>
+
+                  </div>
+
+
+                  {/* TOTAL */}
+
+                  <div className="ticket-total">
+
+                    <span>
+                      Total Amount
+                    </span>
+
+                    <strong>
+                      ₹
+                      {(
+                        Number(
+                          selectedEvent.ticketPrice ||
+                          0
+                        ) *
+                        Number(
+                          ticketCount
                         )
-                      }
-                    >
-                      +
-                    </button>
+                      ).toLocaleString(
+                        "en-IN"
+                      )}
+                    </strong>
 
                   </div>
 
                 </div>
 
 
-
-                {/* TOTAL */}
-
-                <div className="event-booking-total">
-
-                  <span>
-                    Total Amount
-                  </span>
-
-                  <strong>
-                    ₹
-                    {(
-                      Number(
-                        selectedEvent.ticketPrice ||
-                        0
-                      ) *
-                      Number(
-                        ticketCount
-                      )
-                    ).toLocaleString()}
-                  </strong>
-
-                </div>
-
-
-
                 {/* BOOK */}
 
                 <button
+                  type="button"
                   className="event-register-btn"
-                  onClick={bookEvent}
+                  onClick={openPayment}
                 >
-                  🎟️ Book Event
+                  🎟️ Book Ticket
                 </button>
 
               </>
@@ -774,10 +1165,8 @@ function Events() {
             )}
 
 
-
-            {/* CLOSE */}
-
             <button
+              type="button"
               className="event-close-btn"
               onClick={closeEvent}
             >
@@ -790,10 +1179,232 @@ function Events() {
 
       )}
 
+
+      {/* =================================================
+          PAYMENT MODAL
+      ================================================= */}
+
+      {selectedEvent &&
+        showPayment && (
+
+        <div
+          className="event-modal-overlay"
+          onClick={() => {
+
+            if (!bookingLoading) {
+
+              setShowPayment(false)
+
+            }
+
+          }}
+        >
+
+          <div
+            className="event-payment-modal"
+            onClick={e =>
+              e.stopPropagation()
+            }
+          >
+
+            {/* CLOSE */}
+
+            <button
+              type="button"
+              className="event-modal-close"
+              onClick={() => {
+
+                if (!bookingLoading) {
+
+                  setShowPayment(false)
+
+                }
+
+              }}
+            >
+              ✕
+            </button>
+
+
+            {/* PAYMENT ICON */}
+
+            <div className="event-payment-icon">
+              💳
+            </div>
+
+
+            <p className="event-payment-label">
+              EVENT PAYMENT
+            </p>
+
+
+            <h2>
+              Pay for Your Ticket
+            </h2>
+
+
+            <p className="event-payment-subtitle">
+              Complete the payment to confirm
+              your event booking.
+            </p>
+
+
+            {/* PAYMENT SUMMARY */}
+
+            <div className="event-payment-summary">
+
+              <div>
+
+                <span>
+                  Event
+                </span>
+
+                <strong>
+                  {selectedEvent.title}
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Tickets
+                </span>
+
+                <strong>
+                  {ticketCount}
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Amount
+                </span>
+
+                <strong>
+                  ₹
+                  {(
+                    Number(
+                      selectedEvent.ticketPrice ||
+                      0
+                    ) *
+                    Number(
+                      ticketCount
+                    )
+                  ).toLocaleString(
+                    "en-IN"
+                  )}
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            {/* QR */}
+
+            <div className="event-payment-qr">
+
+              <img
+                src="/upi-qr.jpeg"
+                alt="UPI Payment QR Code"
+              />
+
+            </div>
+
+
+            <p className="event-payment-scan">
+              Scan the QR code using
+              PhonePe or another UPI app.
+            </p>
+
+
+            {/* PAYMENT INSTRUCTIONS */}
+
+            <div className="event-payment-note">
+
+              <strong>
+                💡 Payment Instructions
+              </strong>
+
+
+              <p>
+                1. Scan the QR code.
+              </p>
+
+
+              <p>
+                2. Pay the exact amount shown above.
+              </p>
+
+
+              <p>
+                3. Complete the UPI payment.
+              </p>
+
+
+              <p>
+                4. Click "I've Paid" below.
+              </p>
+
+            </div>
+
+
+            {/* I'VE PAID */}
+
+            <button
+              type="button"
+              className="event-paid-btn"
+              onClick={
+                confirmPayment
+              }
+              disabled={
+                bookingLoading
+              }
+            >
+
+              {bookingLoading
+                ? "Confirming..."
+                : "✓ I've Paid"}
+
+            </button>
+
+
+            {/* CANCEL */}
+
+            <button
+              type="button"
+              className="event-cancel-payment-btn"
+              onClick={() => {
+
+                if (!bookingLoading) {
+
+                  setShowPayment(false)
+
+                }
+
+              }}
+              disabled={
+                bookingLoading
+              }
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
     </section>
 
   )
-
 }
+
 
 export default Events

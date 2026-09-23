@@ -1,160 +1,27 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
+
+const EVENTS_API =
+  "http://127.0.0.1:5000/api/events"
+
+const NOTIFICATIONS_API =
+  "http://127.0.0.1:5000/api/notifications"
+
+const STUDENTS_API =
+  "http://127.0.0.1:5000/api/admin/teacher-students"
 
 function TeacherEvents() {
+  const [events, setEvents] = useState([])
+  const [students, setStudents] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // =========================
-  // DEFAULT EVENTS
-  // =========================
+  const [showModal, setShowModal] = useState(false)
+  const [showBookings, setShowBookings] = useState(false)
 
-  const defaultEvents = [
-    {
-      id: 1,
-      date: "25",
-      month: "SEP",
-      title: "Annual Music Concert",
-      description:
-        "Experience an evening of amazing performances by our talented students.",
-      time: "6:00 PM",
-      location: "Tantra Academy Auditorium",
-      ticketPrice: 500
-    },
-    {
-      id: 2,
-      date: "12",
-      month: "OCT",
-      title: "Music Workshop",
-      description:
-        "Learn practical techniques from experienced musicians and teachers.",
-      time: "10:00 AM",
-      location: "Music Studio 1",
-      ticketPrice: 300
-    }
-  ]
+  const [editingEvent, setEditingEvent] = useState(null)
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [bookings, setBookings] = useState([])
 
-
-  // =========================
-  // EVENTS STATE
-  // =========================
-
-  const [events, setEvents] = useState(() =>
-    JSON.parse(
-      localStorage.getItem("tantraEvents")
-    ) || defaultEvents
-  )
-
-
-  // =========================
-  // BOOKINGS STATE
-  // =========================
-
-  const [bookings, setBookings] = useState(() =>
-    JSON.parse(
-      localStorage.getItem("tantraEventBookings")
-    ) || []
-  )
-
-
-  // =========================
-  // LOAD LIVE DATA
-  // =========================
-
-  useEffect(() => {
-
-    function loadEvents() {
-
-      const savedEvents =
-        JSON.parse(
-          localStorage.getItem("tantraEvents")
-        )
-
-      setEvents(
-        savedEvents || defaultEvents
-      )
-
-    }
-
-
-    function loadBookings() {
-
-      const savedBookings =
-        JSON.parse(
-          localStorage.getItem("tantraEventBookings")
-        ) || []
-
-      setBookings(savedBookings)
-
-    }
-
-
-    window.addEventListener(
-      "storage",
-      loadEvents
-    )
-
-    window.addEventListener(
-      "storage",
-      loadBookings
-    )
-
-    window.addEventListener(
-      "eventsUpdated",
-      loadEvents
-    )
-
-    window.addEventListener(
-      "bookingUpdated",
-      loadBookings
-    )
-
-
-    return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadEvents
-      )
-
-      window.removeEventListener(
-        "storage",
-        loadBookings
-      )
-
-      window.removeEventListener(
-        "eventsUpdated",
-        loadEvents
-      )
-
-      window.removeEventListener(
-        "bookingUpdated",
-        loadBookings
-      )
-
-    }
-
-  }, [])
-
-
-  // =========================
-  // SELECTED EVENT
-  // =========================
-
-  const [selectedEvent, setSelectedEvent] =
-    useState(null)
-
-
-  // =========================
-  // FORM
-  // =========================
-
-  const [showForm, setShowForm] =
-    useState(false)
-
-
-  const [editingEvent, setEditingEvent] =
-    useState(null)
-
-
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     title: "",
     description: "",
     date: "",
@@ -163,69 +30,155 @@ function TeacherEvents() {
     ticketPrice: ""
   })
 
+  // =========================================
+  // JWT HEADERS
+  // =========================================
 
-  // =========================
-  // EVENT BOOKINGS
-  // =========================
-
-  function getEventBookings(eventId) {
-
-    return bookings.filter(
-      (booking) =>
-        String(booking.eventId) ===
-        String(eventId)
+  function getAuthHeaders() {
+    const token = sessionStorage.getItem(
+      "tantraAuthToken"
     )
 
+    return {
+      "Content-Type": "application/json",
+      ...(token
+        ? {
+            Authorization: `Bearer ${token}`
+          }
+        : {})
+    }
   }
 
+  // =========================================
+  // LOAD EVENTS
+  // =========================================
 
-  // =========================
-  // TOTAL TICKETS
-  // =========================
+  const loadEvents = async () => {
+    try {
+      setLoading(true)
 
-  function getTotalTickets(eventId) {
+      const response = await fetch(EVENTS_API, {
+        method: "GET",
+        headers: getAuthHeaders(),
+        cache: "no-store"
+      })
 
-    return getEventBookings(eventId)
-      .reduce(
-        (total, booking) =>
-          total +
-          Number(
-            booking.tickets || 0
-          ),
-        0
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setEvents(
+          Array.isArray(data.events)
+            ? data.events
+            : []
+        )
+      } else {
+        alert(
+          data.message ||
+            "Unable to load events."
+        )
+      }
+    } catch (error) {
+      console.error(
+        "Events loading error:",
+        error
       )
 
+      alert(
+        "Unable to connect to the server."
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
+  // =========================================
+  // LOAD STUDENTS
+  // =========================================
 
-  // =========================
-  // TOTAL AMOUNT
-  // =========================
-
-  function getTotalAmount(eventId) {
-
-    return getEventBookings(eventId)
-      .reduce(
-        (total, booking) =>
-          total +
-          Number(
-            booking.totalAmount || 0
-          ),
-        0
+  const loadStudents = async () => {
+    try {
+      const response = await fetch(
+        STUDENTS_API,
+        {
+          method: "GET",
+          headers: getAuthHeaders(),
+          cache: "no-store"
+        }
       )
 
+      const data = await response.json()
+
+      if (
+        response.ok &&
+        data.success
+      ) {
+        setStudents(
+          Array.isArray(data.students)
+            ? data.students
+            : []
+        )
+      } else {
+        setStudents([])
+      }
+    } catch (error) {
+      console.error(
+        "Students loading error:",
+        error
+      )
+
+      setStudents([])
+    }
   }
 
+  // =========================================
+  // INITIAL LOAD
+  // =========================================
 
-  // =========================
-  // OPEN ADD FORM
-  // =========================
+  useEffect(() => {
+    loadEvents()
+    loadStudents()
 
-  function openAddForm() {
+    function handleEventsUpdated() {
+      loadEvents()
+    }
 
+    window.addEventListener(
+      "eventsUpdated",
+      handleEventsUpdated
+    )
+
+    return () => {
+      window.removeEventListener(
+        "eventsUpdated",
+        handleEventsUpdated
+      )
+    }
+  }, [])
+
+  // =========================================
+  // FORM CHANGE
+  // =========================================
+
+  const handleChange = (event) => {
+    const {
+      name,
+      value
+    } = event.target
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value
+    }))
+  }
+
+  // =========================================
+  // OPEN ADD MODAL
+  // =========================================
+
+  const openAddModal = () => {
     setEditingEvent(null)
 
-    setFormData({
+    setForm({
       title: "",
       description: "",
       date: "",
@@ -234,19 +187,31 @@ function TeacherEvents() {
       ticketPrice: ""
     })
 
-    setShowForm(true)
-
+    setShowModal(true)
   }
 
+  // =========================================
+  // DATE CONVERSION
+  // =========================================
 
-  // =========================
-  // OPEN EDIT FORM
-  // =========================
+  const convertStoredDate = (event) => {
+    if (!event.date) {
+      return ""
+    }
 
-  function openEditForm(event) {
+    // If backend already returns YYYY-MM-DD
+    if (
+      typeof event.date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(
+        event.date
+      )
+    ) {
+      return event.date
+    }
 
-    setEditingEvent(event)
-
+    if (!event.month) {
+      return ""
+    }
 
     const monthMap = {
       JAN: "01",
@@ -263,1009 +228,853 @@ function TeacherEvents() {
       DEC: "12"
     }
 
-
     const month =
-      monthMap[event.month]
-
-
-    const formattedDate =
-      month
-        ? `2026-${month}-${String(
-            event.date
-          ).padStart(2, "0")}`
-        : ""
-
-
-    // Convert 6:00 PM → 18:00
-    let formattedTime = ""
-
-
-    if (event.time) {
-
-      const timeParts =
-        event.time.match(
-          /(\d+):(\d+)\s*(AM|PM)/i
-        )
-
-
-      if (timeParts) {
-
-        let hours =
-          Number(timeParts[1])
-
-        const minutes =
-          timeParts[2]
-
-        const period =
-          timeParts[3].toUpperCase()
-
-
-        if (
-          period === "PM" &&
-          hours !== 12
-        ) {
-          hours += 12
-        }
-
-
-        if (
-          period === "AM" &&
-          hours === 12
-        ) {
-          hours = 0
-        }
-
-
-        formattedTime =
-          `${String(hours).padStart(2, "0")}:${minutes}`
-
-      }
-
-    }
-
-
-    setFormData({
-      title: event.title || "",
-      description: event.description || "",
-      date: formattedDate,
-      time: formattedTime,
-      location: event.location || "",
-      ticketPrice:
-        event.ticketPrice ?? ""
-    })
-
-
-    setShowForm(true)
-
-  }
-
-
-  // =========================
-  // SAVE EVENT
-  // =========================
-
-  function saveEvent() {
-
-    if (
-      !formData.title.trim() ||
-      !formData.description.trim() ||
-      !formData.date ||
-      !formData.time ||
-      !formData.location.trim() ||
-      formData.ticketPrice === ""
-    ) {
-
-      alert(
-        "Please fill all fields."
-      )
-
-      return
-
-    }
-
-
-    const dateObject =
-      new Date(
-        `${formData.date}T00:00:00`
-      )
-
-
-    const formattedDate =
-      dateObject
-        .getDate()
-        .toString()
-        .padStart(2, "0")
-
-
-    const formattedMonth =
-      dateObject
-        .toLocaleString(
-          "en-US",
-          {
-            month: "short"
-          }
-        )
-        .toUpperCase()
-
-
-    const formattedTime =
-      new Date(
-        `1970-01-01T${formData.time}`
-      ).toLocaleTimeString(
-        "en-US",
-        {
-          hour: "numeric",
-          minute: "2-digit"
-        }
-      )
-
-
-    // =========================
-    // EDIT EVENT
-    // =========================
-
-    if (editingEvent) {
-
-      const updatedEvents =
-        events.map((event) => {
-
-          if (
-            event.id ===
-            editingEvent.id
-          ) {
-
-            return {
-              ...event,
-
-              date: formattedDate,
-
-              month: formattedMonth,
-
-              title:
-                formData.title.trim(),
-
-              description:
-                formData.description.trim(),
-
-              time: formattedTime,
-
-              location:
-                formData.location.trim(),
-
-              ticketPrice:
-                Number(
-                  formData.ticketPrice
-                )
-            }
-
-          }
-
-          return event
-
-        })
-
-
-      setEvents(updatedEvents)
-
-
-      localStorage.setItem(
-        "tantraEvents",
-        JSON.stringify(
-          updatedEvents
-        )
-      )
-
-
-      window.dispatchEvent(
-        new Event("eventsUpdated")
-      )
-
-
-      alert(
-        "Event updated successfully! ✨"
-      )
-
-    }
-
-    // =========================
-    // CREATE EVENT
-    // =========================
-
-    else {
-
-      const newEvent = {
-
-        id: Date.now(),
-
-        date: formattedDate,
-
-        month: formattedMonth,
-
-        title:
-          formData.title.trim(),
-
-        description:
-          formData.description.trim(),
-
-        time: formattedTime,
-
-        location:
-          formData.location.trim(),
-
-        ticketPrice:
-          Number(
-            formData.ticketPrice
-          )
-
-      }
-
-
-      const updatedEvents = [
-        ...events,
-        newEvent
+      monthMap[
+        String(event.month)
+          .toUpperCase()
+          .slice(0, 3)
       ]
 
+    if (!month) {
+      return ""
+    }
 
-      setEvents(updatedEvents)
+    const day = String(
+      event.date
+    ).padStart(2, "0")
 
+    const year =
+      event.year ||
+      new Date().getFullYear()
 
-      localStorage.setItem(
-        "tantraEvents",
-        JSON.stringify(
-          updatedEvents
+    return `${year}-${month}-${day}`
+  }
+
+  // =========================================
+  // OPEN EDIT MODAL
+  // =========================================
+
+  const openEditModal = (event) => {
+    setEditingEvent(event)
+
+    setForm({
+      title: event.title || "",
+
+      description:
+        event.description || "",
+
+      date: convertStoredDate(event),
+
+      time: event.time || "",
+
+      location:
+        event.location || "",
+
+      ticketPrice:
+        event.ticketPrice ??
+        ""
+    })
+
+    setShowModal(true)
+  }
+
+  // =========================================
+  // SAVE EVENT
+  // =========================================
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!form.title.trim()) {
+      alert(
+        "Please enter event title."
+      )
+      return
+    }
+
+    if (!form.date) {
+      alert(
+        "Please select event date."
+      )
+      return
+    }
+
+    try {
+      const payload = {
+        title: form.title.trim(),
+
+        description:
+          form.description.trim(),
+
+        date: form.date,
+
+        time: form.time.trim(),
+
+        location:
+          form.location.trim(),
+
+        ticketPrice:
+          Number(form.ticketPrice) || 0
+      }
+
+      let response
+
+      if (editingEvent) {
+        response = await fetch(
+          `${EVENTS_API}/${editingEvent.id}`,
+          {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+          }
         )
+      } else {
+        response = await fetch(
+          EVENTS_API,
+          {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+          }
+        )
+      }
+
+      const data =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        alert(
+          data.message ||
+            "Unable to save event."
+        )
+        return
+      }
+
+      // =====================================
+      // NOTIFY STUDENTS
+      // =====================================
+
+      await notifyStudents(
+        editingEvent
+          ? "Event updated 🎫"
+          : "New academy event 🎫",
+        editingEvent
+          ? `${payload.title} has been updated.`
+          : `${payload.title} has been added to the academy events.`
       )
 
+      alert(
+        editingEvent
+          ? "Event updated successfully! ✅"
+          : "Event created successfully! ✅"
+      )
+
+      setShowModal(false)
+      setEditingEvent(null)
+
+      setForm({
+        title: "",
+        description: "",
+        date: "",
+        time: "",
+        location: "",
+        ticketPrice: ""
+      })
+
+      await loadEvents()
 
       window.dispatchEvent(
         new Event("eventsUpdated")
       )
-
-
-      alert(
-        "Event created successfully! 🎉"
+    } catch (error) {
+      console.error(
+        "Event save error:",
+        error
       )
 
+      alert(
+        "Unable to connect to server."
+      )
     }
-
-
-    setShowForm(false)
-
-    setEditingEvent(null)
-
   }
 
-
-  // =========================
+  // =========================================
   // DELETE EVENT
-  // =========================
+  // =========================================
 
-  function deleteEvent(id) {
-
-    const confirmDelete =
+  const handleDelete = async (
+    eventId
+  ) => {
+    const confirmed =
       window.confirm(
         "Are you sure you want to delete this event?"
       )
 
-
-    if (!confirmDelete) {
+    if (!confirmed) {
       return
     }
 
+    try {
+      const response =
+        await fetch(
+          `${EVENTS_API}/${eventId}`,
+          {
+            method: "DELETE",
+            headers: getAuthHeaders()
+          }
+        )
 
-    const updatedEvents =
-      events.filter(
-        (event) =>
-          event.id !== id
+      const data =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        alert(
+          data.message ||
+            "Unable to delete event."
+        )
+        return
+      }
+
+      alert(
+        "Event deleted successfully! 🗑️"
       )
 
+      await loadEvents()
 
-    setEvents(updatedEvents)
-
-
-    localStorage.setItem(
-      "tantraEvents",
-      JSON.stringify(
-        updatedEvents
+      window.dispatchEvent(
+        new Event("eventsUpdated")
       )
-    )
-
-
-    // Remove related bookings
-
-    const updatedBookings =
-      bookings.filter(
-        (booking) =>
-          String(booking.eventId) !==
-          String(id)
+    } catch (error) {
+      console.error(
+        "Event delete error:",
+        error
       )
 
-
-    setBookings(updatedBookings)
-
-
-    localStorage.setItem(
-      "tantraEventBookings",
-      JSON.stringify(
-        updatedBookings
+      alert(
+        "Unable to connect to server."
       )
-    )
+    }
+  }
 
+  // =========================================
+  // LOAD BOOKINGS
+  // =========================================
 
-    window.dispatchEvent(
-      new Event("eventsUpdated")
-    )
+  const viewBookings = async (
+    event
+  ) => {
+    try {
+      setSelectedEvent(event)
 
+      const response =
+        await fetch(
+          `${EVENTS_API}/${event.id}/bookings`,
+          {
+            method: "GET",
+            headers: getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
 
-    window.dispatchEvent(
-      new Event("bookingUpdated")
-    )
+      const data =
+        await response.json()
 
+      if (
+        response.ok &&
+        data.success
+      ) {
+        setBookings(
+          Array.isArray(data.bookings)
+            ? data.bookings
+            : []
+        )
 
-    if (
-      selectedEvent &&
-      String(selectedEvent.id) ===
-      String(id)
-    ) {
+        setShowBookings(true)
+      } else {
+        alert(
+          data.message ||
+            "Unable to load bookings."
+        )
+      }
+    } catch (error) {
+      console.error(
+        "Bookings loading error:",
+        error
+      )
 
-      setSelectedEvent(null)
+      alert(
+        "Unable to load bookings."
+      )
+    }
+  }
 
+  // =========================================
+  // NOTIFY STUDENTS
+  // =========================================
+
+  const notifyStudents = async (
+    title,
+    message
+  ) => {
+    if (!students.length) {
+      return
     }
 
+    try {
+      await Promise.all(
+        students.map(
+          async (student) => {
+            const studentId =
+              student.id ||
+              student._id
+
+            if (!studentId) {
+              return
+            }
+
+            await fetch(
+              NOTIFICATIONS_API,
+              {
+                method: "POST",
+                headers:
+                  getAuthHeaders(),
+                body: JSON.stringify({
+                  userId:
+                    String(studentId),
+                  title,
+                  message,
+                  type: "event"
+                })
+              }
+            )
+          }
+        )
+      )
+    } catch (error) {
+      console.error(
+        "Student notification error:",
+        error
+      )
+    }
   }
 
+  // =========================================
+  // TOTAL TICKETS
+  // =========================================
 
-  // =========================
-  // CLOSE ADD/EDIT MODAL
-  // =========================
-
-  function closeForm() {
-
-    setShowForm(false)
-
-    setEditingEvent(null)
-
+  const getTotalTickets = () => {
+    return bookings.reduce(
+      (total, booking) =>
+        total +
+        Number(
+          booking.tickets || 0
+        ),
+      0
+    )
   }
 
+  // =========================================
+  // TOTAL REVENUE
+  // =========================================
 
-  // =========================
+  const getTotalRevenue = () => {
+    return bookings.reduce(
+      (total, booking) =>
+        total +
+        Number(
+          booking.totalAmount || 0
+        ),
+      0
+    )
+  }
+
+  // =========================================
   // PAGE
-  // =========================
+  // =========================================
 
   return (
-
     <div className="teacher-events-page">
 
+      {/* HEADER */}
 
-      {/* =========================
-          HEADER
-      ========================= */}
-
-      <div className="teacher-events-header">
-
+      <div
+        className="page-header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "15px",
+          flexWrap: "wrap"
+        }}
+      >
         <div>
+          <h1>🎫 Events</h1>
 
           <p>
-            EVENT MANAGEMENT
+            Create and manage academy events
           </p>
-
-          <h1>
-            Academy Events 🎫
-          </h1>
-
-          <span>
-            Create and manage concerts,
-            workshops and academy events.
-          </span>
-
         </div>
-
 
         <button
-          className="add-event-btn"
-          onClick={openAddForm}
+          onClick={openAddModal}
+          className="primary-btn"
         >
-          + Add Event
+          ➕ Add Event
         </button>
-
       </div>
 
+      {/* LOADING */}
 
-      {/* =========================
-          SUMMARY
-      ========================= */}
-
-      <div className="teacher-events-summary">
-
-        <div className="teacher-event-summary-card">
-
-          <span>
-            Total Events
-          </span>
-
-          <h2>
-            {events.length}
-          </h2>
-
-          <p>
-            Academy events
-          </p>
-
+      {loading ? (
+        <div className="empty-state">
+          <h3>
+            Loading events...
+          </h3>
         </div>
-
-
-        <div className="teacher-event-summary-card">
-
-          <span>
-            Total Tickets Sold
-          </span>
-
-          <h2>
-
-            {bookings.reduce(
-              (total, booking) =>
-                total +
-                Number(
-                  booking.tickets || 0
-                ),
-              0
-            )}
-
-          </h2>
-
-          <p>
-            Across all events
-          </p>
-
-        </div>
-
-      </div>
-
-
-      {/* =========================
-          EVENTS
-      ========================= */}
-
-      {events.length === 0 ? (
-
-        <div className="no-teacher-events">
-
-          <div>
-            🎫
+      ) : events.length === 0 ? (
+        <div className="empty-state">
+          <div
+            style={{
+              fontSize: "50px"
+            }}
+          >
+            🎭
           </div>
 
           <h2>
-            No events yet
+            No Events Yet
           </h2>
 
           <p>
-            Click "Add Event" to create
-            your first academy event.
+            Create your first academy event.
           </p>
 
+          <button
+            onClick={openAddModal}
+            className="primary-btn"
+          >
+            ➕ Create Event
+          </button>
         </div>
-
       ) : (
+        <div className="events-grid">
 
-        <div className="teacher-events-grid">
+          {events.map((event) => (
+            <div
+              className="event-card"
+              key={event.id}
+            >
 
-          {events.map((event) => {
+              {/* DATE */}
 
-            const eventBookings =
-              getEventBookings(event.id)
+              <div className="event-date">
+                <strong>
+                  {event.date}
+                </strong>
 
+                <span>
+                  {event.month}
+                </span>
+              </div>
 
-            const totalTickets =
-              getTotalTickets(event.id)
+              {/* CONTENT */}
 
-
-            const totalAmount =
-              getTotalAmount(event.id)
-
-
-            return (
-
-              <div
-                className="teacher-event-card"
-                key={event.id}
-              >
-
-                {/* TOP */}
-
-                <div className="teacher-event-top">
-
-                  <div className="teacher-event-date">
-
-                    <strong>
-                      {event.date}
-                    </strong>
-
-                    <span>
-                      {event.month}
-                    </span>
-
-                  </div>
-
-
-                  <span className="teacher-event-price">
-                    🎟️ ₹{event.ticketPrice}
-                  </span>
-
-                </div>
-
-
-                {/* TITLE */}
+              <div className="event-content">
 
                 <h2>
                   {event.title}
                 </h2>
 
-
-                {/* DESCRIPTION */}
-
-                <p className="teacher-event-description">
-                  {event.description}
+                <p>
+                  {event.description ||
+                    "No description available."}
                 </p>
 
-
-                {/* DETAILS */}
-
-                <div className="teacher-event-details">
+                <div className="event-details">
 
                   <span>
-                    🕐 {event.time}
+                    🕐{" "}
+                    {event.time ||
+                      "Time not specified"}
                   </span>
 
                   <span>
-                    📍 {event.location}
+                    📍{" "}
+                    {event.location ||
+                      "Location not specified"}
+                  </span>
+
+                  <span>
+                    🎟️ ₹
+                    {Number(
+                      event.ticketPrice || 0
+                    ).toLocaleString(
+                      "en-IN"
+                    )}
                   </span>
 
                 </div>
 
-
-                {/* BOOKING SUMMARY */}
-
-                <div className="teacher-booking-summary">
-
-                  <div>
-
-                    <span>
-                      Bookings
-                    </span>
-
-                    <strong>
-                      {eventBookings.length}
-                    </strong>
-
-                  </div>
-
-
-                  <div>
-
-                    <span>
-                      Tickets Sold
-                    </span>
-
-                    <strong>
-                      {totalTickets}
-                    </strong>
-
-                  </div>
-
-
-                  <div>
-
-                    <span>
-                      Revenue
-                    </span>
-
-                    <strong>
-                      ₹{totalAmount}
-                    </strong>
-
-                  </div>
-
-                </div>
-
-
-                {/* ACTIONS */}
-
-                <div className="teacher-event-actions">
+                <div className="event-actions">
 
                   <button
-                    className="view-bookings-btn"
                     onClick={() =>
-                      setSelectedEvent(event)
+                      openEditModal(event)
                     }
-                  >
-                    🎟️ View Bookings
-                  </button>
-
-
-                  <button
-                    className="edit-event-btn"
-                    onClick={() =>
-                      openEditForm(event)
-                    }
+                    className="secondary-btn"
                   >
                     ✏️ Edit
                   </button>
 
+                  <button
+                    onClick={() =>
+                      viewBookings(event)
+                    }
+                    className="secondary-btn"
+                  >
+                    👥 Bookings
+                  </button>
 
                   <button
-                    className="delete-event-btn"
                     onClick={() =>
-                      deleteEvent(event.id)
+                      handleDelete(event.id)
                     }
+                    className="danger-btn"
                   >
                     🗑️ Delete
                   </button>
 
                 </div>
-
               </div>
-
-            )
-
-          })}
+            </div>
+          ))}
 
         </div>
-
       )}
 
+      {/* ADD / EDIT MODAL */}
 
-      {/* =========================
-          VIEW BOOKINGS MODAL
-      ========================= */}
-
-      {selectedEvent && (
-
+      {showModal && (
         <div
-          className="teacher-bookings-overlay"
+          className="modal-overlay"
           onClick={() =>
-            setSelectedEvent(null)
+            setShowModal(false)
           }
         >
-
           <div
-            className="teacher-bookings-modal"
-            onClick={(e) =>
-              e.stopPropagation()
+            className="modal-box"
+            onClick={(event) =>
+              event.stopPropagation()
             }
           >
 
-            <button
-              className="teacher-bookings-close"
-              onClick={() =>
-                setSelectedEvent(null)
-              }
+            <div className="modal-header">
+
+              <h2>
+                {editingEvent
+                  ? "✏️ Edit Event"
+                  : "➕ Add Event"}
+              </h2>
+
+              <button
+                onClick={() =>
+                  setShowModal(false)
+                }
+                className="close-btn"
+              >
+                ✕
+              </button>
+
+            </div>
+
+            <form
+              onSubmit={handleSubmit}
             >
-              ✕
-            </button>
 
+              <label>
+                Event Title
+              </label>
 
-            <p>
-              EVENT BOOKINGS
-            </p>
+              <input
+                type="text"
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                placeholder="Enter event title"
+                required
+              />
 
+              <label>
+                Description
+              </label>
 
-            <h2>
-              {selectedEvent.title}
-            </h2>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Enter event description"
+                rows="4"
+              />
 
+              <label>
+                Event Date
+              </label>
 
-            {/* BOOKING STATS */}
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                required
+              />
 
-            <div className="teacher-booking-stats">
+              <label>
+                Time
+              </label>
+
+              <input
+                type="time"
+                name="time"
+                value={form.time}
+                onChange={handleChange}
+              />
+
+              <label>
+                Location
+              </label>
+
+              <input
+                type="text"
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder="Enter event location"
+              />
+
+              <label>
+                Ticket Price
+              </label>
+
+              <input
+                type="number"
+                name="ticketPrice"
+                value={form.ticketPrice}
+                onChange={handleChange}
+                placeholder="Enter ticket price"
+                min="0"
+              />
+
+              <div className="modal-actions">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowModal(false)
+                  }
+                  className="secondary-btn"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="primary-btn"
+                >
+                  {editingEvent
+                    ? "Update Event"
+                    : "Create Event"}
+                </button>
+
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* BOOKINGS MODAL */}
+
+      {showBookings && (
+        <div
+          className="modal-overlay"
+          onClick={() =>
+            setShowBookings(false)
+          }
+        >
+          <div
+            className="modal-box"
+            style={{
+              maxWidth: "800px"
+            }}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <div className="modal-header">
 
               <div>
+                <h2>
+                  👥 Event Bookings
+                </h2>
+
+                {selectedEvent && (
+                  <p>
+                    {selectedEvent.title}
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={() =>
+                  setShowBookings(false)
+                }
+                className="close-btn"
+              >
+                ✕
+              </button>
+
+            </div>
+
+            {/* SUMMARY */}
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(3, 1fr)",
+                gap: "15px",
+                marginBottom: "20px"
+              }}
+            >
+
+              <div className="summary-card">
+                <strong>
+                  {bookings.length}
+                </strong>
 
                 <span>
                   Bookings
                 </span>
-
-                <strong>
-                  {
-                    getEventBookings(
-                      selectedEvent.id
-                    ).length
-                  }
-                </strong>
-
               </div>
 
-
-              <div>
+              <div className="summary-card">
+                <strong>
+                  {getTotalTickets()}
+                </strong>
 
                 <span>
                   Tickets
                 </span>
-
-                <strong>
-                  {
-                    getTotalTickets(
-                      selectedEvent.id
-                    )
-                  }
-                </strong>
-
               </div>
 
-
-              <div>
+              <div className="summary-card">
+                <strong>
+                  ₹
+                  {getTotalRevenue().toLocaleString(
+                    "en-IN"
+                  )}
+                </strong>
 
                 <span>
                   Revenue
                 </span>
-
-                <strong>
-                  ₹
-                  {
-                    getTotalAmount(
-                      selectedEvent.id
-                    )
-                  }
-                </strong>
-
               </div>
 
             </div>
 
-
-            {/* BOOKINGS LIST */}
-
-            {getEventBookings(
-              selectedEvent.id
-            ).length === 0 ? (
-
-              <div className="no-event-bookings">
-
-                <div>
-                  🎟️
-                </div>
-
+            {bookings.length === 0 ? (
+              <div className="empty-state">
                 <h3>
                   No bookings yet
                 </h3>
 
                 <p>
                   Students have not booked
-                  tickets for this event.
+                  this event yet.
                 </p>
-
               </div>
-
             ) : (
+              <div
+                style={{
+                  overflowX: "auto"
+                }}
+              >
+                <table className="data-table">
 
-              <div className="event-bookings-list">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Tickets</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
 
-                {getEventBookings(
-                  selectedEvent.id
-                ).map((booking) => (
+                  <tbody>
+                    {bookings.map(
+                      (booking) => (
+                        <tr
+                          key={booking.id}
+                        >
+                          <td>
+                            {booking.studentName ||
+                              "Student"}
+                          </td>
 
-                  <div
-                    className="event-booking-row"
-                    key={booking.id}
-                  >
+                          <td>
+                            {booking.tickets}
+                          </td>
 
-                    <div className="booking-student-icon">
-                      👤
-                    </div>
+                          <td>
+                            ₹
+                            {Number(
+                              booking.totalAmount ||
+                                0
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+                          </td>
 
+                          <td>
+                            {booking.status ||
+                              "Booked"}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
 
-                    <div className="booking-student-info">
-
-                      <strong>
-                        Student
-                      </strong>
-
-                      <span>
-                        Booking ID: {booking.id}
-                      </span>
-
-                    </div>
-
-
-                    <div className="booking-ticket-count">
-
-                      <span>
-                        Tickets
-                      </span>
-
-                      <strong>
-                        {booking.tickets}
-                      </strong>
-
-                    </div>
-
-
-                    <div className="booking-amount">
-
-                      <span>
-                        Amount
-                      </span>
-
-                      <strong>
-                        ₹{booking.totalAmount}
-                      </strong>
-
-                    </div>
-
-
-                    <span className="booking-status">
-                      ✓ {booking.status}
-                    </span>
-
-                  </div>
-
-                ))}
-
+                </table>
               </div>
-
             )}
 
-
-            <button
-              className="close-bookings-btn"
-              onClick={() =>
-                setSelectedEvent(null)
-              }
+            <div
+              className="modal-actions"
+              style={{
+                marginTop: "20px"
+              }}
             >
-              Close
-            </button>
+              <button
+                onClick={() =>
+                  setShowBookings(false)
+                }
+                className="primary-btn"
+              >
+                Close
+              </button>
+            </div>
 
           </div>
-
         </div>
-
       )}
-
-
-      {/* =========================
-          ADD / EDIT EVENT MODAL
-      ========================= */}
-
-      {showForm && (
-
-        <div
-          className="teacher-event-modal-overlay"
-          onClick={closeForm}
-        >
-
-          <div
-            className="teacher-event-modal"
-            onClick={(e) =>
-              e.stopPropagation()
-            }
-          >
-
-            <button
-              className="teacher-event-modal-close"
-              onClick={closeForm}
-            >
-              ✕
-            </button>
-
-
-            <p>
-              {editingEvent
-                ? "EDIT EVENT"
-                : "NEW EVENT"}
-            </p>
-
-
-            <h2>
-              {editingEvent
-                ? "Edit Academy Event ✏️"
-                : "Create Academy Event 🎫"}
-            </h2>
-
-
-            <input
-              type="text"
-              placeholder="Event title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  title: e.target.value
-                })
-              }
-            />
-
-
-            <textarea
-              placeholder="Event description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  description:
-                    e.target.value
-                })
-              }
-            />
-
-
-            <label>
-              Event Date
-            </label>
-
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  date: e.target.value
-                })
-              }
-            />
-
-
-            <label>
-              Event Time
-            </label>
-
-            <input
-              type="time"
-              value={formData.time}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  time: e.target.value
-                })
-              }
-            />
-
-
-            <input
-              type="text"
-              placeholder="Location / Venue"
-              value={formData.location}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  location: e.target.value
-                })
-              }
-            />
-
-
-            <input
-              type="number"
-              placeholder="Ticket price ₹"
-              min="0"
-              value={formData.ticketPrice}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  ticketPrice:
-                    e.target.value
-                })
-              }
-            />
-
-
-            <button
-              className="save-event-btn"
-              onClick={saveEvent}
-            >
-              {editingEvent
-                ? "💾 Update Event"
-                : "🎫 Create Event"}
-            </button>
-
-          </div>
-
-        </div>
-
-      )}
-
     </div>
-
   )
-
 }
 
 export default TeacherEvents

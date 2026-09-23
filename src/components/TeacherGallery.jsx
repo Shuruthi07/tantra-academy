@@ -1,340 +1,425 @@
 import { useEffect, useState } from "react"
 
+const API_URL =
+  "http://127.0.0.1:5000/api/gallery"
+
 function TeacherGallery() {
+  const [galleryItems, setGalleryItems] =
+    useState([])
 
-  const [galleryItems, setGalleryItems] = useState(() =>
-    JSON.parse(
-      localStorage.getItem("tantraGallery")
-    ) || []
-  )
+  const [showForm, setShowForm] =
+    useState(false)
 
-  const [showForm, setShowForm] = useState(false)
+  const [loading, setLoading] =
+    useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
-    category: "Event",
+    category: "Concert",
     image: ""
   })
 
+  // =====================================================
+  // JWT HEADERS
+  // =====================================================
 
-  // =========================================
-  // LOAD GALLERY
-  // =========================================
+  function getAuthHeaders() {
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
 
-  function loadGallery() {
+    return {
+      "Content-Type":
+        "application/json",
 
-    const savedGallery =
-      JSON.parse(
-        localStorage.getItem("tantraGallery")
-      ) || []
-
-    setGalleryItems(savedGallery)
-
+      ...(token
+        ? {
+            Authorization:
+              "Bearer " + token
+          }
+        : {})
+    }
   }
 
+  // =====================================================
+  // LOAD GALLERY
+  // =====================================================
 
-  // =========================================
-  // LIVE UPDATE
-  // =========================================
+  async function loadGallery() {
+    try {
+      setLoading(true)
+
+      const response =
+        await fetch(API_URL, {
+          method: "GET",
+          headers:
+            getAuthHeaders(),
+          cache: "no-store"
+        })
+
+      const data =
+        await response.json()
+
+      console.log(
+        "Teacher Gallery:",
+        response.status,
+        data
+      )
+
+      if (
+        response.ok &&
+        data.success
+      ) {
+        const gallery =
+          Array.isArray(
+            data.gallery
+          )
+            ? data.gallery
+            : []
+
+        const formattedGallery =
+          gallery.map(
+            item => ({
+              ...item,
+
+              id:
+                item.id ||
+                item._id,
+
+              image:
+                item.image ||
+                item.imageUrl ||
+                "",
+
+              title:
+                item.title ||
+                "Academy Moment",
+
+              category:
+                item.category ||
+                "Other"
+            })
+          )
+
+        setGalleryItems(
+          formattedGallery
+        )
+      } else {
+        setGalleryItems([])
+      }
+    } catch (error) {
+      console.error(
+        "Gallery loading error:",
+        error
+      )
+
+      alert(
+        "Unable to connect to Gallery server."
+      )
+
+      setGalleryItems([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
   useEffect(() => {
-
     loadGallery()
 
-    window.addEventListener(
-      "storage",
-      loadGallery
-    )
+    function handleGalleryUpdated() {
+      loadGallery()
+    }
 
     window.addEventListener(
       "galleryUpdated",
-      loadGallery
+      handleGalleryUpdated
     )
 
     return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadGallery
-      )
-
       window.removeEventListener(
         "galleryUpdated",
-        loadGallery
+        handleGalleryUpdated
       )
-
     }
-
   }, [])
 
+  // =====================================================
+  // FORM INPUT
+  // =====================================================
 
-  // =========================================
+  function handleInputChange(event) {
+    const {
+      name,
+      value
+    } = event.target
+
+    setFormData(
+      previous => ({
+        ...previous,
+        [name]: value
+      })
+    )
+  }
+
+  // =====================================================
   // IMAGE UPLOAD
-  // =========================================
+  // =====================================================
 
-  const handleImageUpload = (e) => {
-
+  function handleImageChange(event) {
     const file =
-      e.target.files[0]
+      event.target.files?.[0]
 
     if (!file) {
       return
     }
 
+    // Image type validation
 
-    // CHECK IMAGE TYPE
-
-    if (!file.type.startsWith("image/")) {
-
+    if (
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
       alert(
-        "Please select an image file."
+        "Please select a valid image file."
       )
 
-      e.target.value = ""
+      event.target.value = ""
       return
-
     }
 
+    // Maximum 2 MB
 
-    // MAX 2 MB
-
-    if (file.size > 2 * 1024 * 1024) {
-
+    if (
+      file.size >
+      2 * 1024 * 1024
+    ) {
       alert(
-        "Please select an image smaller than 2 MB."
+        "Image size must be less than 2 MB."
       )
 
-      e.target.value = ""
+      event.target.value = ""
       return
-
     }
-
 
     const reader =
       new FileReader()
 
-
-    reader.onloadend = () => {
-
+    reader.onload = () => {
       setFormData(
-        (previous) => ({
+        previous => ({
           ...previous,
-          image: reader.result
+          image:
+            reader.result
         })
       )
-
     }
 
+    reader.onerror = () => {
+      alert(
+        "Unable to read the selected image."
+      )
+    }
 
     reader.readAsDataURL(file)
-
   }
 
-
-  // =========================================
-  // FORM CHANGE
-  // =========================================
-
-  const handleChange = (e) => {
-
-    const {
-      name,
-      value
-    } = e.target
-
-
-    setFormData(
-      (previous) => ({
-        ...previous,
-        [name]: value
-      })
-    )
-
-  }
-
-
-  // =========================================
+  // =====================================================
   // ADD PHOTO
-  // =========================================
+  // =====================================================
 
-  const handleAddPhoto = (e) => {
+  async function handleAddPhoto(event) {
+    event.preventDefault()
 
-    e.preventDefault()
-
-
-    const cleanTitle =
-      formData.title.trim()
-
-
-    if (!cleanTitle) {
-
+    if (
+      !formData.title.trim()
+    ) {
       alert(
         "Please enter a photo title."
       )
-
       return
-
     }
-
 
     if (!formData.image) {
+      alert(
+        "Please select an image."
+      )
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      const response =
+        await fetch(API_URL, {
+          method: "POST",
+
+          headers:
+            getAuthHeaders(),
+
+          body: JSON.stringify({
+            title:
+              formData.title.trim(),
+
+            category:
+              formData.category,
+
+            image:
+              formData.image
+          })
+        })
+
+      const data =
+        await response.json()
+
+      console.log(
+        "Add gallery response:",
+        response.status,
+        data
+      )
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        alert(
+          data.message ||
+          "Unable to add photo."
+        )
+        return
+      }
 
       alert(
-        "Please upload a photo."
+        "Photo added successfully! 🎉"
       )
 
-      return
+      setFormData({
+        title: "",
+        category: "Concert",
+        image: ""
+      })
 
-    }
+      setShowForm(false)
 
+      await loadGallery()
 
-    const newPhoto = {
-
-      id:
-        Date.now() +
-        Math.floor(
-          Math.random() * 1000
-        ),
-
-      title:
-        cleanTitle,
-
-      category:
-        formData.category,
-
-      image:
-        formData.image
-
-    }
-
-
-    const updatedGallery = [
-
-      newPhoto,
-
-      ...galleryItems
-
-    ]
-
-
-    setGalleryItems(
-      updatedGallery
-    )
-
-
-    localStorage.setItem(
-      "tantraGallery",
-      JSON.stringify(
-        updatedGallery
+      window.dispatchEvent(
+        new Event(
+          "galleryUpdated"
+        )
       )
-    )
+    } catch (error) {
+      console.error(
+        "Add photo error:",
+        error
+      )
 
-
-    window.dispatchEvent(
-      new Event("galleryUpdated")
-    )
-
-
-    // RESET FORM
-
-    setFormData({
-      title: "",
-      category: "Event",
-      image: ""
-    })
-
-
-    setShowForm(false)
-
-
-    alert(
-      "Photo added to gallery! 🖼️"
-    )
-
+      alert(
+        "Unable to connect to Gallery server."
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
-
-  // =========================================
+  // =====================================================
   // DELETE PHOTO
-  // =========================================
+  // =====================================================
 
-  const handleDelete = (id) => {
-
-    const selectedPhoto =
-      galleryItems.find(
-        (item) => item.id === id
+  async function handleDelete(id) {
+    if (!id) {
+      alert(
+        "Gallery item ID not found."
       )
-
-
-    const confirmed =
-      window.confirm(
-        `Delete "${selectedPhoto?.title || "this photo"}"?`
-      )
-
-
-    if (!confirmed) {
       return
     }
 
-
-    const updatedGallery =
-      galleryItems.filter(
-        (item) => item.id !== id
+    const confirmDelete =
+      window.confirm(
+        "Are you sure you want to delete this photo?"
       )
 
+    if (!confirmDelete) {
+      return
+    }
 
-    setGalleryItems(
-      updatedGallery
-    )
+    try {
+      setLoading(true)
 
+      const response =
+        await fetch(
+          `${API_URL}/${id}`,
+          {
+            method: "DELETE",
+            headers:
+              getAuthHeaders()
+          }
+        )
 
-    localStorage.setItem(
-      "tantraGallery",
-      JSON.stringify(
-        updatedGallery
+      const data =
+        await response.json()
+
+      console.log(
+        "Delete gallery response:",
+        response.status,
+        data
       )
-    )
 
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        alert(
+          data.message ||
+          "Unable to delete photo."
+        )
+        return
+      }
 
-    window.dispatchEvent(
-      new Event("galleryUpdated")
-    )
+      alert(
+        "Photo deleted successfully! 🗑️"
+      )
 
+      await loadGallery()
+
+      window.dispatchEvent(
+        new Event(
+          "galleryUpdated"
+        )
+      )
+    } catch (error) {
+      console.error(
+        "Delete photo error:",
+        error
+      )
+
+      alert(
+        "Unable to connect to Gallery server."
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
-
-  // =========================================
-  // CLOSE FORM
-  // =========================================
-
-  const closeForm = () => {
-
-    setFormData({
-      title: "",
-      category: "Event",
-      image: ""
-    })
-
-    setShowForm(false)
-
-  }
-
+  // =====================================================
+  // PAGE
+  // =====================================================
 
   return (
-
     <div className="teacher-gallery-page">
 
-
-      {/* =================================
-          HEADER
-      ================================= */}
+      {/* HEADER */}
 
       <div className="teacher-gallery-header">
 
         <div>
-
           <p>
-            ACADEMY MEMORIES
+            ACADEMY GALLERY
           </p>
 
           <h1>
@@ -342,255 +427,300 @@ function TeacherGallery() {
           </h1>
 
           <span>
-            Manage academy photos and special memories.
+            Manage academy photos and
+            memorable moments.
           </span>
-
         </div>
-
 
         <button
           type="button"
-          className="teacher-gallery-add-btn"
+          className="add-photo-btn"
           onClick={() =>
-            setShowForm(true)
+            setShowForm(
+              previous =>
+                !previous
+            )
           }
         >
-          + Add Photo
+          {showForm
+            ? "✕ Close"
+            : "+ Add Photo"}
         </button>
 
       </div>
 
 
-      {/* =================================
-          ADD PHOTO FORM
-      ================================= */}
+      {/* ADD PHOTO FORM */}
 
       {showForm && (
-
-        <div className="teacher-gallery-form-card">
-
-          <div className="teacher-gallery-form-header">
-
-            <div>
-
-              <p>
-                ACADEMY GALLERY
-              </p>
-
-              <h2>
-                Add Gallery Photo
-              </h2>
-
-            </div>
-
-
-            <button
-              type="button"
-              onClick={closeForm}
-            >
-              ✕
-            </button>
-
-          </div>
-
-
-          <form
-            onSubmit={handleAddPhoto}
-          >
-
-
-            {/* PHOTO TITLE */}
-
-            <div className="teacher-gallery-form-group">
-
-              <label>
-                Photo Title
-              </label>
-
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="Example: Annual Music Concert"
-              />
-
-            </div>
-
-
-            {/* CATEGORY */}
-
-            <div className="teacher-gallery-form-group">
-
-              <label>
-                Category
-              </label>
-
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-              >
-
-                <option value="Event">
-                  Event
-                </option>
-
-                <option value="Concert">
-                  Concert
-                </option>
-
-                <option value="Performance">
-                  Performance
-                </option>
-
-                <option value="Competition">
-                  Competition
-                </option>
-
-                <option value="Workshop">
-                  Workshop
-                </option>
-
-              </select>
-
-            </div>
-
-
-            {/* IMAGE */}
-
-            <div className="teacher-gallery-form-group">
-
-              <label>
-                Upload Photo
-              </label>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-
-
-              {formData.image && (
-
-                <div className="gallery-upload-preview">
-
-                  <img
-                    src={formData.image}
-                    alt="Gallery preview"
-                  />
-
-                </div>
-
-              )}
-
-            </div>
-
-
-            {/* SAVE */}
-
-            <button
-              type="submit"
-              className="teacher-gallery-save-btn"
-            >
-              💾 Save Photo
-            </button>
-
-          </form>
-
-        </div>
-
-      )}
-
-
-      {/* =================================
-          GALLERY
-      ================================= */}
-
-      {galleryItems.length === 0 ? (
-
-        <div className="teacher-gallery-empty">
-
-          <div>
-            🖼️
-          </div>
+        <form
+          className="gallery-form"
+          onSubmit={
+            handleAddPhoto
+          }
+        >
 
           <h2>
-            No photos added yet
+            Add New Photo
           </h2>
 
-          <p>
-            Add photos to display them in the student gallery.
-          </p>
+          {/* TITLE */}
 
-        </div>
+          <div className="form-group">
 
-      ) : (
+            <label>
+              Photo Title
+            </label>
 
-        <div className="teacher-gallery-grid">
+            <input
+              type="text"
+              name="title"
+              value={
+                formData.title
+              }
+              onChange={
+                handleInputChange
+              }
+              placeholder="Enter photo title"
+              required
+            />
 
-          {galleryItems.map(
-            (item) => (
-
-              <div
-                className="teacher-gallery-card"
-                key={item.id}
-              >
-
-
-                {/* IMAGE */}
-
-                <div className="teacher-gallery-image">
-
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                  />
-
-                </div>
+          </div>
 
 
-                {/* CONTENT */}
+          {/* CATEGORY */}
 
-                <div className="teacher-gallery-card-content">
+          <div className="form-group">
 
-                  <span>
-                    {item.category}
-                  </span>
+            <label>
+              Category
+            </label>
 
-                  <h2>
-                    {item.title}
-                  </h2>
+            <select
+              name="category"
+              value={
+                formData.category
+              }
+              onChange={
+                handleInputChange
+              }
+            >
+
+              <option value="Concert">
+                Concert
+              </option>
+
+              <option value="Learning">
+                Learning
+              </option>
+
+              <option value="Performance">
+                Performance
+              </option>
+
+              <option value="Classes">
+                Classes
+              </option>
+
+              <option value="Workshop">
+                Workshop
+              </option>
+
+              <option value="Competition">
+                Competition
+              </option>
+
+              <option value="Other">
+                Other
+              </option>
+
+            </select>
+
+          </div>
 
 
-                  <button
-                    type="button"
-                    className="teacher-gallery-delete-btn"
-                    onClick={() =>
-                      handleDelete(
-                        item.id
-                      )
-                    }
-                  >
-                    🗑 Delete
-                  </button>
+          {/* IMAGE */}
 
-                </div>
+          <div className="form-group">
 
-              </div>
+            <label>
+              Select Image
+            </label>
 
-            )
+            <input
+              type="file"
+              accept="image/*"
+              onChange={
+                handleImageChange
+              }
+            />
+
+            <small>
+              Maximum image size:
+              2 MB
+            </small>
+
+          </div>
+
+
+          {/* IMAGE PREVIEW */}
+
+          {formData.image && (
+            <div className="gallery-image-preview">
+
+              <img
+                src={
+                  formData.image
+                }
+                alt="Preview"
+              />
+
+            </div>
           )}
 
-        </div>
 
+          {/* SAVE */}
+
+          <button
+            type="submit"
+            className="save-photo-btn"
+            disabled={loading}
+          >
+            {loading
+              ? "Saving..."
+              : "Save Photo"}
+          </button>
+
+        </form>
       )}
 
+
+      {/* GALLERY CONTENT */}
+
+      <div className="teacher-gallery-content">
+
+        {loading &&
+        galleryItems.length ===
+          0 ? (
+
+          <div className="empty-gallery">
+
+            <div className="empty-gallery-icon">
+              ⏳
+            </div>
+
+            <h2>
+              Loading Gallery...
+            </h2>
+
+            <p>
+              Please wait while
+              gallery items load.
+            </p>
+
+          </div>
+
+        ) : galleryItems.length ===
+          0 ? (
+
+          <div className="empty-gallery">
+
+            <div className="empty-gallery-icon">
+              🖼️
+            </div>
+
+            <h2>
+              No Photos Yet
+            </h2>
+
+            <p>
+              Add your first academy
+              photo to the gallery.
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div className="gallery-grid">
+
+            {galleryItems.map(
+              (item, index) => (
+
+                <div
+                  className="gallery-card"
+                  key={
+                    item.id ||
+                    item._id ||
+                    `gallery-${index}`
+                  }
+                >
+
+                  {/* IMAGE */}
+
+                  <div className="gallery-card-image">
+
+                    <img
+                      src={
+                        item.image ||
+                        item.imageUrl
+                      }
+                      alt={
+                        item.title ||
+                        "Gallery image"
+                      }
+                    />
+
+                  </div>
+
+
+                  {/* DETAILS */}
+
+                  <div className="gallery-card-content">
+
+                    <span className="gallery-category">
+                      {
+                        item.category
+                      }
+                    </span>
+
+                    <h3>
+                      {
+                        item.title
+                      }
+                    </h3>
+
+                    <button
+                      type="button"
+                      className="delete-gallery-btn"
+                      onClick={() =>
+                        handleDelete(
+                          item.id ||
+                          item._id
+                        )
+                      }
+                      disabled={
+                        loading
+                      }
+                    >
+                      🗑 Delete
+                    </button>
+
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+          </div>
+
+        )}
+
+      </div>
+
     </div>
-
   )
-
 }
 
 export default TeacherGallery

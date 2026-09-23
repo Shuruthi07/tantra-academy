@@ -9,7 +9,7 @@ import {
 
 
 // ========================================
-// PUBLIC PAGES
+// PUBLIC COMPONENTS
 // ========================================
 
 import Navbar from "./components/Navbar"
@@ -30,7 +30,7 @@ import ProtectedRoute from "./components/ProtectedRoute"
 
 
 // ========================================
-// STUDENT PAGES
+// STUDENT
 // ========================================
 
 import StudentDashboard from "./components/StudentDashboard"
@@ -47,10 +47,11 @@ import Feedback from "./components/Feedback"
 import History from "./components/History"
 import Settings from "./components/Settings"
 import Notifications from "./components/Notifications"
+import StudentAttendance from "./components/StudentAttendance"
 
 
 // ========================================
-// TEACHER PAGES
+// TEACHER
 // ========================================
 
 import TeacherLayout from "./components/TeacherLayout"
@@ -70,23 +71,35 @@ import TeacherGallery from "./components/TeacherGallery"
 
 
 // ========================================
+// ADMIN
+// ========================================
+
+import AdminDashboard from "./components/AdminDashboard"
+import AdminStudents from "./components/AdminStudents"
+import AdminTeachers from "./components/AdminTeachers"
+import AdminSongs from "./components/AdminSongs"
+import AdminTasks from "./components/AdminTasks"
+import AdminSchedule from "./components/AdminSchedule"
+import AdminFees from "./components/AdminFees"
+import AdminEvents from "./components/AdminEvents"
+import AdminGallery from "./components/AdminGallery"
+import AdminFeedback from "./components/AdminFeedback"
+import AdminAttendance from "./components/AdminAttendance"
+import AdminNotifications from "././components/AdminNotifications"
+
+
+// ========================================
 // HOME PAGE
 // ========================================
 
 function Home() {
-
   return (
     <>
       <Navbar />
-
       <Hero />
-
       <Classes />
-
       <Events />
-
       <Gallery />
-
       <About />
     </>
   )
@@ -98,27 +111,20 @@ function Home() {
 // ========================================
 
 function App() {
-
   return (
-
     <BrowserRouter>
 
       <Routes>
 
 
         {/* ==================================
-            PUBLIC HOME
+            PUBLIC
         ================================== */}
 
         <Route
           path="/"
           element={<Home />}
         />
-
-
-        {/* ==================================
-            AUTHENTICATION
-        ================================== */}
 
         <Route
           path="/login"
@@ -132,144 +138,169 @@ function App() {
 
 
         {/* ==================================
-            STUDENT ROUTES
-            LOGIN REQUIRED
+            STUDENT
         ================================== */}
 
         <Route
           path="/student-dashboard"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <StudentDashboard />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/my-teacher"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <StudentTeacherProfile />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/my-songs"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <MySongs />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/song-learning"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <SongLearning />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/tasks"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <Tasks />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/schedule"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <Schedule />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/payments"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <Payments />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/events"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <EventsPage />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/my-bookings"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <MyBookings />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/gallery"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <GalleryPage />
             </ProtectedRoute>
           }
         />
 
+        <Route
+          path="/student-attendance"
+          element={
+            <ProtectedRoute
+              allowedRole="student"
+            >
+              <StudentAttendance />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/feedback"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <Feedback />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/history"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <History />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/settings"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <Settings />
             </ProtectedRoute>
           }
         />
 
-
         <Route
           path="/notifications"
           element={
-            <ProtectedRoute allowedRole="Student">
+            <ProtectedRoute
+              allowedRole="student"
+            >
               <Notifications />
             </ProtectedRoute>
           }
@@ -277,12 +308,18 @@ function App() {
 
 
         {/* ==================================
-            TEACHER ROUTES
-            COMMON TEACHER LAYOUT
-            NO LOGIN REQUIRED
+            TEACHER
         ================================== */}
 
-        <Route element={<TeacherLayout />}>
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRole="teacher"
+            >
+              <TeacherLayout />
+            </ProtectedRoute>
+          }
+        >
 
           <Route
             path="/teacher-dashboard"
@@ -350,6 +387,150 @@ function App() {
           />
 
         </Route>
+
+
+        {/* ==================================
+            ADMIN
+        ================================== */}
+
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-students"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminStudents />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-teachers"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminTeachers />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-songs"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminSongs />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-tasks"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminTasks />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-attendance"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminAttendance />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-schedule"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminSchedule />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-fees"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminFees />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-events"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminEvents />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-gallery"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminGallery />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/admin-feedback"
+          element={
+            <ProtectedRoute
+              allowedRole="admin"
+            >
+              <AdminFeedback />
+            </ProtectedRoute>
+          }
+        />
+          <Route
+  path="/admin-notifications"
+  element={
+    <ProtectedRoute allowedRole="admin">
+      <AdminNotifications />
+    </ProtectedRoute>
+  }
+/>
 
 
         {/* ==================================

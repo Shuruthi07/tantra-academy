@@ -1,79 +1,355 @@
 import { useEffect, useState } from "react"
 
+const NOTIFICATIONS_API =
+  "http://127.0.0.1:5000/api/notifications"
+
+const STUDENTS_API =
+  "http://127.0.0.1:5000/api/admin/students"
+
+
 function TeacherNotifications() {
 
-  const [notifications, setNotifications] = useState(() => {
-    return (
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
-        )
-      ) || []
-    )
-  })
+  const [notifications, setNotifications] =
+    useState([])
 
-  const [title, setTitle] = useState("")
-  const [message, setMessage] = useState("")
-  const [type, setType] = useState("Announcement")
-  const [showForm, setShowForm] = useState(false)
+  const [title, setTitle] =
+    useState("")
+
+  const [message, setMessage] =
+    useState("")
+
+  const [type, setType] =
+    useState("Announcement")
+
+  const [showForm, setShowForm] =
+    useState(false)
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [sending, setSending] =
+    useState(false)
+
+  const [error, setError] =
+    useState("")
+
+
+  // =========================================
+  // JWT AUTH HEADERS
+  // =========================================
+
+  function getAuthHeaders() {
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+      Authorization:
+        "Bearer " + token
+    }
+  }
+
+
+  // =========================================
+  // GET LOGGED-IN TEACHER
+  // =========================================
+
+  function getLoggedInTeacher() {
+
+    try {
+
+      const storedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
+        )
+
+      if (storedUser) {
+
+        return JSON.parse(
+          storedUser
+        )
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Teacher session error:",
+        error
+      )
+
+    }
+
+
+    return null
+
+  }
+
+
+  // =========================================
+  // GET TEACHER ID
+  // =========================================
+
+  function getTeacherId() {
+
+    const teacher =
+      getLoggedInTeacher()
+
+
+    if (!teacher) {
+      return ""
+    }
+
+
+    return String(
+      teacher.id ||
+      teacher._id ||
+      teacher.userId ||
+      ""
+    ).trim()
+
+  }
+
+
+  // =========================================
+  // GET NOTIFICATION ICON
+  // =========================================
+
+  function getNotificationIcon(
+    notificationType
+  ) {
+
+    const normalizedType =
+      String(
+        notificationType || ""
+      ).toLowerCase()
+
+
+    if (
+      normalizedType === "music"
+    ) {
+
+      return "🎵"
+
+    }
+
+
+    if (
+      normalizedType === "class"
+    ) {
+
+      return "📅"
+
+    }
+
+
+    if (
+      normalizedType === "task"
+    ) {
+
+      return "✅"
+
+    }
+
+
+    if (
+      normalizedType === "event"
+    ) {
+
+      return "🎫"
+
+    }
+
+
+    if (
+      normalizedType === "payment"
+    ) {
+
+      return "💳"
+
+    }
+
+
+    return "📢"
+
+  }
+
+
+  // =========================================
+  // FORMAT TIME
+  // =========================================
+
+  function formatTime(
+    createdAt
+  ) {
+
+    if (!createdAt) {
+      return "Just now"
+    }
+
+
+    const date =
+      new Date(createdAt)
+
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+
+      return "Just now"
+
+    }
+
+
+    return date.toLocaleString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }
+    )
+
+  }
 
 
   // =========================================
   // LOAD NOTIFICATIONS
   // =========================================
 
-  function loadNotifications() {
+  async function loadNotifications() {
 
-    const savedNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
+    try {
+
+      setLoading(true)
+      setError("")
+
+
+      const teacherId =
+        getTeacherId()
+
+
+      if (!teacherId) {
+
+        setNotifications([])
+
+        setError(
+          "Teacher session not found. Please login again."
         )
-      ) || []
 
-    setNotifications(savedNotifications)
+        return
+
+      }
+
+
+      const response =
+        await fetch(
+          `${NOTIFICATIONS_API}?userId=${encodeURIComponent(
+            teacherId
+          )}&_=${Date.now()}`,
+          {
+            method: "GET",
+
+            cache: "no-store",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              ...getAuthHeaders()
+            }
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.message ||
+          "Unable to load notifications."
+        )
+
+      }
+
+
+      setNotifications(
+        Array.isArray(
+          data.notifications
+        )
+          ? data.notifications
+          : []
+      )
+
+    } catch (error) {
+
+      console.error(
+        "Notification loading error:",
+        error
+      )
+
+      setNotifications([])
+
+      setError(
+        error.message ||
+        "Unable to load notifications."
+      )
+
+    } finally {
+
+      setLoading(false)
+
+    }
 
   }
 
 
   // =========================================
-  // LIVE UPDATE
+  // INITIAL LOAD
   // =========================================
 
   useEffect(() => {
 
     loadNotifications()
 
+
+    function handleNotificationsUpdated() {
+
+      loadNotifications()
+
+    }
+
+
     window.addEventListener(
-      "storage",
-      loadNotifications
+      "notificationsUpdated",
+      handleNotificationsUpdated
     )
 
     window.addEventListener(
       "teacherNotificationsUpdated",
-      loadNotifications
+      handleNotificationsUpdated
     )
 
-    window.addEventListener(
-      "notificationsUpdated",
-      loadNotifications
-    )
 
     return () => {
 
       window.removeEventListener(
-        "storage",
-        loadNotifications
+        "notificationsUpdated",
+        handleNotificationsUpdated
       )
 
       window.removeEventListener(
         "teacherNotificationsUpdated",
-        loadNotifications
-      )
-
-      window.removeEventListener(
-        "notificationsUpdated",
-        loadNotifications
+        handleNotificationsUpdated
       )
 
     }
@@ -82,37 +358,10 @@ function TeacherNotifications() {
 
 
   // =========================================
-  // GET ICON
-  // =========================================
-
-  function getNotificationIcon(notificationType) {
-
-    if (notificationType === "Music") {
-      return "🎵"
-    }
-
-    if (notificationType === "Class") {
-      return "📅"
-    }
-
-    if (notificationType === "Task") {
-      return "✅"
-    }
-
-    if (notificationType === "Event") {
-      return "🎫"
-    }
-
-    return "📢"
-
-  }
-
-
-  // =========================================
   // ADD NOTIFICATION
   // =========================================
 
-  function addNotification(e) {
+  async function addNotification(e) {
 
     e.preventDefault()
 
@@ -138,86 +387,197 @@ function TeacherNotifications() {
     }
 
 
-    const newNotification = {
+    try {
 
-      id:
-        Date.now() +
-        Math.floor(
-          Math.random() * 1000
-        ),
+      setSending(true)
 
-      icon:
-        getNotificationIcon(type),
 
-      title:
-        cleanTitle,
+      // =========================================
+      // LOAD ALL STUDENTS
+      // =========================================
 
-      message:
-        cleanMessage,
+      const studentsResponse =
+        await fetch(
+          STUDENTS_API,
+          {
+            method: "GET",
 
-      type:
-        type,
+            headers: {
+              "Content-Type":
+                "application/json",
 
-      time:
-        "Just now",
+              ...getAuthHeaders()
+            }
+          }
+        )
 
-      unread:
-        true
+
+      const studentsData =
+        await studentsResponse.json()
+
+
+      if (!studentsResponse.ok) {
+
+        throw new Error(
+          studentsData.message ||
+          "Unable to load students."
+        )
+
+      }
+
+
+      const students =
+        Array.isArray(
+          studentsData.students
+        )
+          ? studentsData.students
+          : []
+
+
+      if (students.length === 0) {
+
+        alert(
+          "No students are available."
+        )
+
+        return
+
+      }
+
+
+      // =========================================
+      // SEND TO EVERY STUDENT
+      // =========================================
+
+      let successCount = 0
+
+
+      for (
+        const student of students
+      ) {
+
+        const studentId =
+          String(
+            student.id ||
+            student._id ||
+            student.userId ||
+            ""
+          ).trim()
+
+
+        if (!studentId) {
+          continue
+        }
+
+
+        const response =
+          await fetch(
+            NOTIFICATIONS_API,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                ...getAuthHeaders()
+              },
+
+              body: JSON.stringify({
+
+                userId:
+                  studentId,
+
+                title:
+                  cleanTitle,
+
+                message:
+                  cleanMessage,
+
+                type:
+                  type
+
+              })
+
+            }
+          )
+
+
+        const data =
+          await response.json()
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.message ||
+            "Unable to send notification."
+          )
+
+        }
+
+
+        successCount += 1
+
+      }
+
+
+      // =========================================
+      // RESET FORM
+      // =========================================
+
+      setTitle("")
+      setMessage("")
+      setType("Announcement")
+      setShowForm(false)
+
+
+      // =========================================
+      // REFRESH
+      // =========================================
+
+      await loadNotifications()
+
+
+      window.dispatchEvent(
+        new Event(
+          "notificationsUpdated"
+        )
+      )
+
+
+      window.dispatchEvent(
+        new Event(
+          "teacherNotificationsUpdated"
+        )
+      )
+
+
+      alert(
+        `Notification sent successfully to ${successCount} student${
+          successCount === 1
+            ? ""
+            : "s"
+        }! 📢`
+      )
+
+    } catch (error) {
+
+      console.error(
+        "Notification creation error:",
+        error
+      )
+
+      alert(
+        error.message ||
+        "Unable to send notification."
+      )
+
+    } finally {
+
+      setSending(false)
 
     }
-
-
-    const updatedNotifications = [
-
-      newNotification,
-
-      ...notifications
-
-    ]
-
-
-    setNotifications(
-      updatedNotifications
-    )
-
-
-    localStorage.setItem(
-      "tantraTeacherNotifications",
-      JSON.stringify(
-        updatedNotifications
-      )
-    )
-
-
-    // Update Teacher Notifications
-
-    window.dispatchEvent(
-      new Event(
-        "teacherNotificationsUpdated"
-      )
-    )
-
-
-    // Update Student Notifications
-
-    window.dispatchEvent(
-      new Event(
-        "notificationsUpdated"
-      )
-    )
-
-
-    // RESET
-
-    setTitle("")
-    setMessage("")
-    setType("Announcement")
-    setShowForm(false)
-
-
-    alert(
-      "Notification sent successfully! 📢"
-    )
 
   }
 
@@ -226,7 +586,9 @@ function TeacherNotifications() {
   // DELETE NOTIFICATION
   // =========================================
 
-  function deleteNotification(id) {
+  async function deleteNotification(
+    id
+  ) {
 
     const confirmed =
       window.confirm(
@@ -239,38 +601,217 @@ function TeacherNotifications() {
     }
 
 
-    const updatedNotifications =
-      notifications.filter(
-        (notification) =>
-          notification.id !== id
+    try {
+
+      const response =
+        await fetch(
+          `${NOTIFICATIONS_API}/${id}`,
+          {
+            method: "DELETE",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              ...getAuthHeaders()
+            }
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.message ||
+          "Unable to delete notification."
+        )
+
+      }
+
+
+      setNotifications(
+        (previous) =>
+          previous.filter(
+            (notification) =>
+              notification.id !== id
+          )
       )
 
 
-    setNotifications(
-      updatedNotifications
-    )
-
-
-    localStorage.setItem(
-      "tantraTeacherNotifications",
-      JSON.stringify(
-        updatedNotifications
+      window.dispatchEvent(
+        new Event(
+          "notificationsUpdated"
+        )
       )
-    )
 
+    } catch (error) {
 
-    window.dispatchEvent(
-      new Event(
-        "teacherNotificationsUpdated"
+      console.error(
+        "Notification delete error:",
+        error
       )
-    )
 
-
-    window.dispatchEvent(
-      new Event(
-        "notificationsUpdated"
+      alert(
+        error.message ||
+        "Unable to delete notification."
       )
-    )
+
+    }
+
+  }
+
+
+  // =========================================
+  // MARK ONE AS READ
+  // =========================================
+
+  async function markAsRead(
+    notification
+  ) {
+
+    if (
+      notification.read
+    ) {
+
+      return
+
+    }
+
+
+    try {
+
+      const response =
+        await fetch(
+          `${NOTIFICATIONS_API}/${notification.id}/read`,
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              ...getAuthHeaders()
+            }
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.message ||
+          "Unable to mark notification as read."
+        )
+
+      }
+
+
+      setNotifications(
+        (previous) =>
+          previous.map(
+            (item) =>
+              item.id ===
+              notification.id
+                ? {
+                    ...item,
+                    read: true
+                  }
+                : item
+          )
+      )
+
+    } catch (error) {
+
+      console.error(
+        "Mark notification error:",
+        error
+      )
+
+    }
+
+  }
+
+
+  // =========================================
+  // MARK ALL AS READ
+  // =========================================
+
+  async function markAllAsRead() {
+
+    const teacherId =
+      getTeacherId()
+
+
+    if (!teacherId) {
+      return
+    }
+
+
+    try {
+
+      const response =
+        await fetch(
+          `${NOTIFICATIONS_API}/read-all?userId=${encodeURIComponent(
+            teacherId
+          )}`,
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              ...getAuthHeaders()
+            }
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.message ||
+          "Unable to mark notifications as read."
+        )
+
+      }
+
+
+      setNotifications(
+        (previous) =>
+          previous.map(
+            (notification) => ({
+              ...notification,
+              read: true
+            })
+          )
+      )
+
+    } catch (error) {
+
+      console.error(
+        "Mark all notifications error:",
+        error
+      )
+
+      alert(
+        error.message ||
+        "Unable to mark notifications as read."
+      )
+
+    }
 
   }
 
@@ -290,24 +831,81 @@ function TeacherNotifications() {
 
 
   // =========================================
-  // SUMMARY
+  // UNREAD COUNT
   // =========================================
 
   const unreadCount =
     notifications.filter(
       (notification) =>
-        notification.unread
+        !notification.read
     ).length
 
+
+  // =========================================
+  // LOADING
+  // =========================================
+
+  if (loading) {
+
+    return (
+
+      <div className="teacher-notifications-page">
+
+        <div className="teacher-notifications-header">
+
+          <div>
+
+            <p>
+              STUDENT UPDATES
+            </p>
+
+            <h1>
+              Notifications 🔔
+            </h1>
+
+            <span>
+              Loading notifications...
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div className="teacher-no-notifications">
+
+          <div>
+            🔔
+          </div>
+
+          <h2>
+            Loading...
+          </h2>
+
+          <p>
+            Please wait while notifications
+            are loaded.
+          </p>
+
+        </div>
+
+      </div>
+
+    )
+
+  }
+
+
+  // =========================================
+  // PAGE
+  // =========================================
 
   return (
 
     <div className="teacher-notifications-page">
 
 
-      {/* =================================
-          HEADER
-      ================================= */}
+      {/* HEADER */}
 
       <div className="teacher-notifications-header">
 
@@ -322,32 +920,86 @@ function TeacherNotifications() {
           </h1>
 
           <span>
-            Create and manage notifications for your students.
+            Create and manage notifications
+            for your students.
           </span>
 
         </div>
 
 
-        <button
-          type="button"
-          className="create-notification-btn"
-          onClick={() =>
-            setShowForm(
-              !showForm
-            )
-          }
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap"
+          }}
         >
-          {showForm
-            ? "✕ Close"
-            : "+ Create Notification"}
-        </button>
+
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={loadNotifications}
+          >
+            🔄 Refresh
+          </button>
+
+
+          {unreadCount > 0 && (
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={markAllAsRead}
+            >
+              ✓ Mark All Read
+            </button>
+
+          )}
+
+
+          <button
+            type="button"
+            className="create-notification-btn"
+            onClick={() =>
+              setShowForm(
+                !showForm
+              )
+            }
+          >
+            {showForm
+              ? "✕ Close"
+              : "+ Create Notification"}
+          </button>
+
+        </div>
 
       </div>
 
 
-      {/* =================================
-          CREATE FORM
-      ================================= */}
+      {/* ERROR */}
+
+      {error && (
+
+        <div className="login-error">
+
+          {error}
+
+          <button
+            type="button"
+            onClick={loadNotifications}
+            style={{
+              marginLeft: "12px"
+            }}
+          >
+            🔄 Retry
+          </button>
+
+        </div>
+
+      )}
+
+
+      {/* CREATE FORM */}
 
       {showForm && (
 
@@ -358,7 +1010,7 @@ function TeacherNotifications() {
           </h2>
 
           <p>
-            Send an update to your students.
+            Send an update to all students.
           </p>
 
 
@@ -367,7 +1019,6 @@ function TeacherNotifications() {
               addNotification
             }
           >
-
 
             {/* TITLE */}
 
@@ -428,6 +1079,10 @@ function TeacherNotifications() {
                   🎫 Event
                 </option>
 
+                <option value="Payment">
+                  💳 Payment
+                </option>
+
               </select>
 
             </div>
@@ -473,8 +1128,11 @@ function TeacherNotifications() {
               <button
                 type="submit"
                 className="save-notification-btn"
+                disabled={sending}
               >
-                📢 Send Notification
+                {sending
+                  ? "Sending..."
+                  : "📢 Send Notification"}
               </button>
 
             </div>
@@ -486,9 +1144,7 @@ function TeacherNotifications() {
       )}
 
 
-      {/* =================================
-          SUMMARY
-      ================================= */}
+      {/* SUMMARY */}
 
       <div className="teacher-notification-summary">
 
@@ -503,7 +1159,7 @@ function TeacherNotifications() {
           </h2>
 
           <p>
-            Notifications created
+            Notifications
           </p>
 
         </div>
@@ -520,7 +1176,7 @@ function TeacherNotifications() {
           </h2>
 
           <p>
-            Student notifications
+            Unread notifications
           </p>
 
         </div>
@@ -528,9 +1184,7 @@ function TeacherNotifications() {
       </div>
 
 
-      {/* =================================
-          NOTIFICATION LIST
-      ================================= */}
+      {/* NOTIFICATION LIST */}
 
       <div className="teacher-notification-list">
 
@@ -547,7 +1201,8 @@ function TeacherNotifications() {
             </h2>
 
             <p>
-              Create your first notification for students.
+              Teacher notifications for this
+              account will appear here.
             </p>
 
           </div>
@@ -560,16 +1215,21 @@ function TeacherNotifications() {
               <div
                 className="teacher-notification-card"
                 key={notification.id}
+                style={{
+                  opacity:
+                    notification.read
+                      ? 0.75
+                      : 1
+                }}
               >
 
                 {/* ICON */}
 
                 <div className="teacher-notification-icon">
 
-                  {notification.icon ||
-                    getNotificationIcon(
-                      notification.type
-                    )}
+                  {getNotificationIcon(
+                    notification.type
+                  )}
 
                 </div>
 
@@ -590,8 +1250,9 @@ function TeacherNotifications() {
 
                     <span className="teacher-notification-time">
 
-                      {notification.time ||
-                        "Just now"}
+                      {formatTime(
+                        notification.createdAt
+                      )}
 
                     </span>
 
@@ -606,6 +1267,29 @@ function TeacherNotifications() {
                   <p>
                     {notification.message}
                   </p>
+
+
+                  {!notification.read && (
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        markAsRead(
+                          notification
+                        )
+                      }
+                      style={{
+                        marginTop: "8px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontWeight: "600"
+                      }}
+                    >
+                      ✓ Mark as read
+                    </button>
+
+                  )}
 
                 </div>
 

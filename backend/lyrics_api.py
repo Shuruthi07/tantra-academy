@@ -1,49 +1,73 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Blueprint, request, jsonify
 import requests
 import urllib.parse
-import os
-
-app = Flask(__name__)
-
-# Allow requests from the frontend
-CORS(app)
 
 
-# =========================================
+# =====================================================
+# LYRICS BLUEPRINT
+# =====================================================
+
+lyrics = Blueprint(
+    "lyrics",
+    __name__
+)
+
+
+# =====================================================
 # LYRICS API
-# =========================================
+# =====================================================
 
-@app.route("/api/lyrics", methods=["GET"])
+@lyrics.route("/", methods=["GET"])
 def get_lyrics():
 
-    song = request.args.get("song")
-    artist = request.args.get("artist")
+    song = request.args.get(
+        "song",
+        ""
+    ).strip()
 
-    # Check required values
+    artist = request.args.get(
+        "artist",
+        ""
+    ).strip()
+
+
+    # =================================================
+    # CHECK REQUIRED VALUES
+    # =================================================
+
     if not song or not artist:
+
         return jsonify({
+            "success": False,
             "error": "Song name and artist are required"
         }), 400
 
 
-    # =====================================
+    # =================================================
     # SOURCE 1 - LYRICS.OVH
-    # =====================================
+    # =================================================
 
     try:
 
         artist_encoded = urllib.parse.quote(
-            artist.strip()
+            artist,
+            safe=""
         )
 
         song_encoded = urllib.parse.quote(
-            song.strip()
+            song,
+            safe=""
         )
 
         url = (
-            f"https://api.lyrics.ovh/v1/"
-            f"{artist_encoded}/{song_encoded}"
+            "https://api.lyrics.ovh/v1/"
+            f"{artist_encoded}/"
+            f"{song_encoded}"
+        )
+
+        print(
+            "Trying Lyrics.ovh:",
+            url
         )
 
         response = requests.get(
@@ -55,19 +79,33 @@ def get_lyrics():
 
             data = response.json()
 
-            lyrics = data.get(
+            lyrics_text = data.get(
                 "lyrics",
                 ""
             )
 
-            if lyrics:
+            if (
+                lyrics_text
+                and lyrics_text.strip()
+            ):
+
+                print(
+                    "Lyrics found using Lyrics.ovh"
+                )
 
                 return jsonify({
+
+                    "success": True,
+
                     "song": song,
+
                     "artist": artist,
-                    "lyrics": lyrics,
-                    "source": "lyrics.ovh"
-                })
+
+                    "lyrics": lyrics_text,
+
+                    "source": "Lyrics.ovh"
+
+                }), 200
 
     except Exception as error:
 
@@ -77,40 +115,94 @@ def get_lyrics():
         )
 
 
-    # =====================================
-    # SOURCE 2 - LRCLIB
-    # =====================================
+    # =================================================
+    # SOURCE 2 - LRCLIB SEARCH
+    # =================================================
 
     try:
 
         params = {
-            "track_name": song.strip(),
-            "artist_name": artist.strip()
+
+            "track_name":
+                song,
+
+            "artist_name":
+                artist
+
         }
 
+        print(
+            "Trying LRCLIB..."
+        )
+
         response = requests.get(
-            "https://lrclib.net/api/get",
+
+            "https://lrclib.net/api/search",
+
             params=params,
-            timeout=10
+
+            timeout=10,
+
+            headers={
+                "User-Agent":
+                    "TantraAcademy/1.0"
+            }
+
         )
 
         if response.status_code == 200:
 
-            data = response.json()
+            # IMPORTANT:
+            # Keep this on ONE line.
+            results = response.json()
 
-            lyrics = data.get(
-                "plainLyrics",
-                ""
-            )
+            if isinstance(
+                results,
+                list
+            ):
 
-            if lyrics:
+                for item in results:
 
-                return jsonify({
-                    "song": song,
-                    "artist": artist,
-                    "lyrics": lyrics,
-                    "source": "LRCLIB"
-                })
+                    if not isinstance(
+                        item,
+                        dict
+                    ):
+                        continue
+
+                    lyrics_text = (
+
+                        item.get(
+                            "plainLyrics"
+                        )
+
+                        or ""
+
+                    )
+
+                    if (
+                        lyrics_text
+                        and lyrics_text.strip()
+                    ):
+
+                        print(
+                            "Lyrics found using LRCLIB"
+                        )
+
+                        return jsonify({
+
+                            "success": True,
+
+                            "song": song,
+
+                            "artist": artist,
+
+                            "lyrics":
+                                lyrics_text,
+
+                            "source":
+                                "LRCLIB"
+
+                        }), 200
 
     except Exception as error:
 
@@ -120,46 +212,22 @@ def get_lyrics():
         )
 
 
-    # =====================================
+    # =================================================
     # NOTHING FOUND
-    # =====================================
+    # =================================================
+
+    print(
+        "Lyrics not found:",
+        song,
+        "-",
+        artist
+    )
 
     return jsonify({
-        "error": "Lyrics not found for this song."
+
+        "success": False,
+
+        "error":
+            "Lyrics not found for this song."
+
     }), 404
-
-
-# =========================================
-# HEALTH CHECK
-# =========================================
-
-@app.route("/", methods=["GET"])
-def home():
-
-    return jsonify({
-        "status": "success",
-        "message": "Tantra Academy Lyrics API is running"
-    })
-
-
-# =========================================
-# SERVER
-# =========================================
-
-if __name__ == "__main__":
-
-    # Render provides the PORT automatically.
-    # When running locally, it will use 5001.
-
-    port = int(
-        os.environ.get(
-            "PORT",
-            5001
-        )
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=False
-    )

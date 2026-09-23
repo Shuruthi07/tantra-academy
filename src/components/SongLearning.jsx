@@ -1,389 +1,990 @@
-import { useEffect, useState } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import {
+  useEffect,
+  useState
+} from "react"
 
-const defaultSongs = [
-  {
-    id: 1,
-    title: "Perfect",
-    artist: "Ed Sheeran",
-    category: "Vocal",
-    difficulty: "Easy",
-    progress: 80,
-  },
-  {
-    id: 2,
-    title: "Tum Hi Ho",
-    artist: "Arijit Singh",
-    category: "Vocal",
-    difficulty: "Medium",
-    progress: 60,
-  },
-  {
-    id: 3,
-    title: "Let Her Go",
-    artist: "Passenger",
-    category: "Guitar",
-    difficulty: "Medium",
-    progress: 45,
-  },
-  {
-    id: 4,
-    title: "Someone Like You",
-    artist: "Adele",
-    category: "Piano",
-    difficulty: "Hard",
-    progress: 30,
-  },
-]
+import {
+  useNavigate,
+  useSearchParams
+} from "react-router-dom"
+
+
+const SONGS_API =
+  "http://127.0.0.1:5000/api/admin/songs"
+
+
+const PROGRESS_API =
+  "http://127.0.0.1:5000/api/song-progress"
+
+
+const LYRICS_API =
+  "https://tantra-academy.onrender.com/api/lyrics"
+
+
+// =====================================================
+// AUTH HEADERS
+// =====================================================
+
+function getAuthHeaders() {
+
+  const token =
+    sessionStorage.getItem(
+      "tantraAuthToken"
+    )
+
+  return {
+    "Content-Type":
+      "application/json",
+
+    ...(token
+      ? {
+          Authorization:
+            "Bearer " + token
+        }
+      : {})
+  }
+
+}
+
+
+// =====================================================
+// COMPONENT
+// =====================================================
 
 function SongLearning() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
 
-  const [foundSong, setFoundSong] = useState(null)
-  const [automaticLyrics, setAutomaticLyrics] = useState("")
-  const [lyricsLoading, setLyricsLoading] = useState(false)
-  const [lyricsError, setLyricsError] = useState("")
-  const [progress, setProgress] = useState(0)
-  const [message, setMessage] = useState("")
+  const navigate =
+    useNavigate()
 
-  // =========================================
-  // LOAD SONG
-  // =========================================
+  const [searchParams] =
+    useSearchParams()
 
-  useEffect(() => {
-    const songId = searchParams.get("id")
 
-    let songs = []
+  const [foundSong, setFoundSong] =
+    useState(null)
 
-    try {
-      const savedSongs = JSON.parse(
-        localStorage.getItem("tantraSongs")
-      )
 
-      if (Array.isArray(savedSongs)) {
-        songs = savedSongs
-      }
-    } catch (error) {
-      songs = []
-    }
+  const [songLoading, setSongLoading] =
+    useState(true)
 
-    const allSongs = [...defaultSongs, ...songs]
 
-    let selectedSong = null
+  const [automaticLyrics, setAutomaticLyrics] =
+    useState("")
 
-    if (songId) {
-      selectedSong = allSongs.find(
-        (song) => String(song.id) === String(songId)
-      )
-    }
 
-    if (!selectedSong) {
-      selectedSong = allSongs[0]
-    }
+  const [lyricsLoading, setLyricsLoading] =
+    useState(false)
 
-    setFoundSong(selectedSong)
 
-    // =========================================
-    // LOAD STUDENT PROGRESS
-    // =========================================
+  const [lyricsError, setLyricsError] =
+    useState("")
+
+
+  const [progress, setProgress] =
+    useState(0)
+
+
+  const [message, setMessage] =
+    useState("")
+
+
+  // =====================================================
+  // GET LOGGED-IN STUDENT
+  // =====================================================
+
+  function getLoggedInUser() {
 
     try {
-      const savedProgress = JSON.parse(
-        localStorage.getItem("tantraStudentProgress")
-      )
 
-      if (Array.isArray(savedProgress)) {
-        const progressItem = savedProgress.find(
-          (item) =>
-            String(item.songId) === String(selectedSong.id)
+      const storedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
         )
 
-        if (progressItem) {
-          setProgress(Number(progressItem.progress) || 0)
-          return
-        }
+
+      if (!storedUser) {
+        return null
       }
+
+
+      return JSON.parse(
+        storedUser
+      )
+
     } catch (error) {
-      console.log("Progress loading error:", error)
+
+      console.error(
+        "User loading error:",
+        error
+      )
+
+      return null
+
     }
 
-    setProgress(Number(selectedSong.progress) || 0)
+  }
+
+
+  // =====================================================
+  // LOAD SONG
+  // =====================================================
+
+  useEffect(() => {
+
+    const songId =
+      searchParams.get("id") ||
+      searchParams.get("songId")
+
+
+    async function loadSong() {
+
+      setSongLoading(true)
+      setMessage("")
+
+
+      try {
+
+        const token =
+          sessionStorage.getItem(
+            "tantraAuthToken"
+          )
+
+
+        if (!token) {
+
+          throw new Error(
+            "Your login session has expired. Please login again."
+          )
+
+        }
+
+
+        // =============================================
+        // LOAD SONGS WITH JWT
+        // =============================================
+
+        const response =
+          await fetch(
+            SONGS_API,
+            {
+              method: "GET",
+
+              headers:
+                getAuthHeaders(),
+
+              cache:
+                "no-store"
+            }
+          )
+
+
+        const data =
+          await response.json()
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.message ||
+            "Unable to load songs."
+          )
+
+        }
+
+
+        const mongoSongs =
+          Array.isArray(
+            data.songs
+          )
+            ? data.songs
+            : []
+
+
+        const selectedSong =
+          mongoSongs.find(
+            song =>
+              String(
+                song.id ||
+                song._id
+              ) ===
+              String(
+                songId
+              )
+          )
+
+
+        if (!selectedSong) {
+
+          setFoundSong(
+            null
+          )
+
+          return
+
+        }
+
+
+        const formattedSong = {
+
+          ...selectedSong,
+
+          id:
+            selectedSong.id ||
+            selectedSong._id,
+
+          category:
+            selectedSong.category ||
+            selectedSong.course ||
+            "Music",
+
+          course:
+            selectedSong.course ||
+            selectedSong.category ||
+            "Music",
+
+          difficulty:
+            selectedSong.difficulty ||
+            "Medium"
+
+        }
+
+
+        setFoundSong(
+          formattedSong
+        )
+
+
+        // =============================================
+        // LOAD STUDENT PROGRESS
+        // =============================================
+
+        const loggedInUser =
+          getLoggedInUser()
+
+
+        const studentId =
+          String(
+            loggedInUser?.id ||
+            loggedInUser?._id ||
+            ""
+          )
+
+
+        if (!studentId) {
+
+          setProgress(0)
+
+          return
+
+        }
+
+
+        try {
+
+          const progressResponse =
+            await fetch(
+              `${PROGRESS_API}?studentId=${encodeURIComponent(
+                studentId
+              )}&songId=${encodeURIComponent(
+                formattedSong.id
+              )}`,
+              {
+                method: "GET",
+
+                headers:
+                  getAuthHeaders(),
+
+                cache:
+                  "no-store"
+              }
+            )
+
+
+          const progressData =
+            await progressResponse.json()
+
+
+          console.log(
+            "Loaded progress:",
+            progressData
+          )
+
+
+          if (
+            progressResponse.ok &&
+            Array.isArray(
+              progressData.progress
+            ) &&
+            progressData.progress.length > 0
+          ) {
+
+            const savedProgress =
+              progressData.progress[0]
+
+
+            setProgress(
+              Number(
+                savedProgress.progress ||
+                0
+              )
+            )
+
+          } else {
+
+            setProgress(0)
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            "MongoDB progress loading error:",
+            error
+          )
+
+          setProgress(0)
+
+        }
+
+
+      } catch (error) {
+
+        console.error(
+          "Song loading error:",
+          error
+        )
+
+
+        setFoundSong(
+          null
+        )
+
+
+        setMessage(
+          error.message ||
+          "Unable to load song."
+        )
+
+      } finally {
+
+        setSongLoading(
+          false
+        )
+
+      }
+
+    }
+
+
+    loadSong()
+
   }, [searchParams])
 
 
-  // =========================================
+  // =====================================================
   // AUTOMATIC LYRICS
-  // =========================================
+  // =====================================================
 
   useEffect(() => {
+
     if (!foundSong) {
       return
     }
 
-    const fetchLyrics = async () => {
-      setLyricsLoading(true)
-      setLyricsError("")
-      setAutomaticLyrics("")
+
+    if (
+      !foundSong.title ||
+      !foundSong.artist
+    ) {
+
+      return
+
+    }
+
+
+    async function fetchLyrics() {
+
+      setLyricsLoading(
+        true
+      )
+
+      setLyricsError(
+        ""
+      )
+
+      setAutomaticLyrics(
+        ""
+      )
+
 
       try {
-        const response = await fetch(
-          `https://tantra-academy.onrender.com/api/lyrics?song=${encodeURIComponent(
+
+        const url =
+          `${LYRICS_API}?song=${encodeURIComponent(
             foundSong.title
           )}&artist=${encodeURIComponent(
             foundSong.artist
           )}`
-        )
 
-        const data = await response.json()
+
+        const response =
+          await fetch(
+            url
+          )
+
+
+        const data =
+          await response.json()
+
 
         if (!response.ok) {
+
           throw new Error(
-            data.error || "Lyrics not found"
+            data.error ||
+            "Lyrics not found"
           )
+
         }
 
+
         setAutomaticLyrics(
-          data.lyrics || ""
+          data.lyrics ||
+          ""
         )
+
+
       } catch (error) {
+
         console.error(
           "Automatic lyrics error:",
           error
         )
 
+
         setLyricsError(
           "Automatic lyrics could not be loaded."
         )
+
       } finally {
-        setLyricsLoading(false)
+
+        setLyricsLoading(
+          false
+        )
+
       }
+
     }
 
+
     fetchLyrics()
+
   }, [foundSong])
 
 
-  // =========================================
-  // UPDATE PROGRESS
-  // =========================================
+  // =====================================================
+  // UPDATE STUDENT PROGRESS IN MONGODB
+  // =====================================================
 
-  const updateProgress = (newProgress) => {
-    const safeProgress = Math.max(
-      0,
-      Math.min(100, Number(newProgress))
+  async function updateProgress(
+    newProgress
+  ) {
+
+    const safeProgress =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          Number(
+            newProgress
+          )
+        )
+      )
+
+
+    // Update UI immediately
+
+    setProgress(
+      safeProgress
     )
 
-    setProgress(safeProgress)
 
     if (!foundSong) {
       return
     }
 
-    try {
-      const existingProgress = JSON.parse(
-        localStorage.getItem(
-          "tantraStudentProgress"
-        )
-      ) || []
 
-      const updatedProgress = [...existingProgress]
+    // ==========================================
+    // GET LOGGED-IN STUDENT
+    // ==========================================
 
-      const existingIndex =
-        updatedProgress.findIndex(
-          (item) =>
-            String(item.songId) ===
-            String(foundSong.id)
-        )
+    const loggedInUser =
+      getLoggedInUser()
 
-      const progressData = {
-        songId: foundSong.id,
-        songTitle: foundSong.title,
-        studentName: "Student",
-        progress: safeProgress,
-        updatedAt: new Date().toISOString(),
-      }
 
-      if (existingIndex >= 0) {
-        updatedProgress[existingIndex] =
-          progressData
-      } else {
-        updatedProgress.push(
-          progressData
-        )
-      }
+    if (!loggedInUser) {
 
-      localStorage.setItem(
-        "tantraStudentProgress",
-        JSON.stringify(updatedProgress)
+      setMessage(
+        "Please log in again to save your progress."
       )
+
+      return
+
+    }
+
+
+    // Support both id and _id
+
+    const studentId =
+      String(
+        loggedInUser.id ||
+        loggedInUser._id ||
+        ""
+      )
+
+
+    const studentName =
+      loggedInUser.name ||
+      "Student"
+
+
+    if (!studentId) {
+
+      console.error(
+        "Student ID missing:",
+        loggedInUser
+      )
+
+
+      setMessage(
+        "Student account information is missing. Please login again."
+      )
+
+      return
+
+    }
+
+
+    // ==========================================
+    // GET JWT TOKEN
+    // ==========================================
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+
+    if (!token) {
+
+      setMessage(
+        "Login session expired. Please login again."
+      )
+
+      return
+
+    }
+
+
+    // ==========================================
+    // SAVE PROGRESS TO MONGODB
+    // ==========================================
+
+    try {
+
+      const progressPayload = {
+
+        songId:
+          String(
+            foundSong.id ||
+            foundSong._id
+          ),
+
+        studentId:
+          studentId,
+
+        studentName:
+          studentName,
+
+        progress:
+          safeProgress
+
+      }
+
+
+      console.log(
+        "Saving song progress:",
+        progressPayload
+      )
+
+
+      const response =
+        await fetch(
+          `${PROGRESS_API}/update`,
+          {
+            method: "POST",
+
+            headers:
+              getAuthHeaders(),
+
+            body:
+              JSON.stringify(
+                progressPayload
+              )
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Progress API response:",
+        data
+      )
+
+
+      if (
+        !response.ok ||
+        data.success === false
+      ) {
+
+        throw new Error(
+          data.message ||
+          "Unable to save progress."
+        )
+
+      }
+
+
+      // ==========================================
+      // NOTIFY OTHER COMPONENTS
+      // ==========================================
 
       window.dispatchEvent(
-        new Event("progressUpdated")
+        new Event(
+          "progressUpdated"
+        )
       )
 
-      if (safeProgress === 100) {
+
+      // ==========================================
+      // SUCCESS MESSAGE
+      // ==========================================
+
+      if (
+        safeProgress >= 100
+      ) {
+
         setMessage(
           "🎉 Song completed successfully!"
         )
+
       } else {
+
         setMessage(
-          "Progress updated successfully!"
+          "Progress saved to MongoDB successfully! ✅"
         )
+
       }
+
+
     } catch (error) {
+
       console.error(
-        "Progress update error:",
+        "MongoDB progress update error:",
         error
       )
+
+
+      setMessage(
+        error.message ||
+        "Unable to save progress."
+      )
+
     }
+
   }
 
 
-  // =========================================
+  // =====================================================
   // COMPLETE SONG
-  // =========================================
+  // =====================================================
 
-  const handleComplete = () => {
-    updateProgress(100)
+  function handleComplete() {
+
+    updateProgress(
+      100
+    )
+
   }
 
 
-  // =========================================
-  // AUDIO SEARCH
-  // =========================================
+  // =====================================================
+  // YOUTUBE SEARCH
+  // =====================================================
 
-  const openYouTube = () => {
+  function openYouTube() {
+
     if (!foundSong) {
       return
     }
 
-    const searchText = encodeURIComponent(
-      `${foundSong.title} ${foundSong.artist}`
-    )
+
+    const searchText =
+      encodeURIComponent(
+        `${foundSong.title} ${foundSong.artist}`
+      )
+
 
     window.open(
       `https://www.youtube.com/results?search_query=${searchText}`,
       "_blank"
     )
+
   }
 
 
-  const openSpotify = () => {
+  // =====================================================
+  // SPOTIFY SEARCH
+  // =====================================================
+
+  function openSpotify() {
+
     if (!foundSong) {
       return
     }
 
-    const searchText = encodeURIComponent(
-      `${foundSong.title} ${foundSong.artist}`
-    )
+
+    const searchText =
+      encodeURIComponent(
+        `${foundSong.title} ${foundSong.artist}`
+      )
+
 
     window.open(
       `https://open.spotify.com/search/${searchText}`,
       "_blank"
     )
+
   }
 
 
-  // =========================================
+  // =====================================================
   // LOADING
-  // =========================================
+  // =====================================================
+
+  if (songLoading) {
+
+    return (
+
+      <div className="song-learning-page">
+
+        <div className="song-learning-container">
+
+          <div className="song-learning-card">
+
+            <h2>
+              Loading song...
+            </h2>
+
+            <p>
+              Getting your song details.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    )
+
+  }
+
+
+  // =====================================================
+  // SONG NOT FOUND
+  // =====================================================
 
   if (!foundSong) {
+
     return (
+
       <div className="song-learning-page">
+
         <div className="song-learning-container">
+
           <div className="song-learning-card">
-            <h2>Loading song...</h2>
+
+            <h2>
+              Song not found
+            </h2>
+
+
+            {message && (
+
+              <p
+                style={{
+                  color: "#d32f2f",
+                  margin:
+                    "12px 0"
+                }}
+              >
+                {message}
+              </p>
+
+            )}
+
+
+            <button
+              className="secondary-button"
+
+              onClick={() =>
+                navigate(
+                  "/my-songs"
+                )
+              }
+            >
+
+              ← Back to My Songs
+
+            </button>
+
           </div>
+
         </div>
+
       </div>
+
     )
+
   }
 
 
-  // =========================================
+  // =====================================================
   // STATUS
-  // =========================================
+  // =====================================================
 
-  let status = "Not Started"
+  let status =
+    "Not Started"
 
-  if (progress === 100) {
-    status = "Completed"
-  } else if (progress > 0) {
-    status = "Learning"
+
+  if (
+    progress >= 100
+  ) {
+
+    status =
+      "Completed"
+
+  } else if (
+    progress > 0
+  ) {
+
+    status =
+      "Learning"
+
   }
 
+
+  // =====================================================
+  // PAGE
+  // =====================================================
 
   return (
+
     <div className="song-learning-page">
 
       <div className="song-learning-container">
 
-        {/* =====================================
+
+        {/* =============================================
             HEADER
-        ====================================== */}
+        ============================================= */}
 
         <div className="song-learning-header">
 
           <button
             className="back-button"
+
             onClick={() =>
-              navigate("/my-songs")
+              navigate(
+                "/my-songs"
+              )
             }
           >
+
             ← Back to My Songs
+
           </button>
 
+
           <div>
+
             <h1>
               🎵 {foundSong.title}
             </h1>
 
+
             <p>
               {foundSong.artist}
             </p>
+
           </div>
 
         </div>
 
 
-        {/* =====================================
+        {/* =============================================
             SONG INFORMATION
-        ====================================== */}
+        ============================================= */}
 
         <div className="song-learning-card">
 
           <div className="song-info-grid">
 
             <div>
+
               <span className="info-label">
                 Category
               </span>
 
+
               <strong>
-                {foundSong.category}
+                {foundSong.category ||
+                  foundSong.course ||
+                  "Music"}
               </strong>
+
             </div>
 
+
             <div>
+
               <span className="info-label">
                 Difficulty
               </span>
 
+
               <strong>
-                {foundSong.difficulty}
+                {foundSong.difficulty ||
+                  "Medium"}
               </strong>
+
             </div>
 
+
             <div>
+
               <span className="info-label">
                 Status
               </span>
 
+
               <strong>
                 {status}
               </strong>
+
             </div>
 
           </div>
@@ -391,45 +992,56 @@ function SongLearning() {
         </div>
 
 
-        {/* =====================================
+        {/* =============================================
             PROGRESS
-        ====================================== */}
+        ============================================= */}
 
         <div className="song-learning-card">
 
           <div className="section-heading">
 
             <div>
+
               <h2>
                 Learning Progress
               </h2>
 
+
               <p>
                 Track your progress for this song.
               </p>
+
             </div>
 
+
             <strong className="progress-number">
+
               {progress}%
+
             </strong>
 
           </div>
+
 
           <div className="progress-bar-container">
 
             <div
               className="progress-bar"
+
               style={{
-                width: `${progress}%`,
+                width:
+                  `${progress}%`
               }}
             />
 
           </div>
 
+
           <div className="progress-controls">
 
             <button
               className="secondary-button"
+
               onClick={() =>
                 updateProgress(
                   Math.max(
@@ -439,11 +1051,15 @@ function SongLearning() {
                 )
               }
             >
+
               − 10%
+
             </button>
+
 
             <button
               className="secondary-button"
+
               onClick={() =>
                 updateProgress(
                   Math.min(
@@ -453,144 +1069,204 @@ function SongLearning() {
                 )
               }
             >
+
               + 10%
+
             </button>
+
 
             <button
               className="primary-button"
-              onClick={handleComplete}
+
+              onClick={
+                handleComplete
+              }
             >
+
               ✓ Mark Completed
+
             </button>
 
           </div>
 
+
           {message && (
-            <div className="success-message">
+
+            <div
+              className={
+                message.includes(
+                  "successfully"
+                )
+                  ? "success-message"
+                  : "lyrics-error"
+              }
+              style={{
+                marginTop:
+                  "16px"
+              }}
+            >
+
               {message}
+
             </div>
+
           )}
 
         </div>
 
 
-        {/* =====================================
+        {/* =============================================
             AUTOMATIC LYRICS
-        ====================================== */}
+        ============================================= */}
 
         <div className="song-learning-card">
 
           <div className="section-heading">
 
             <div>
+
               <h2>
                 📝 Automatic Lyrics
               </h2>
+
 
               <p>
                 Lyrics are automatically searched
                 for this song.
               </p>
+
             </div>
 
           </div>
 
 
           {lyricsLoading && (
+
             <div className="lyrics-loading">
+
               <div className="loading-spinner" />
+
+
               <p>
                 Finding lyrics...
               </p>
+
             </div>
+
           )}
 
 
           {!lyricsLoading &&
             automaticLyrics && (
+
               <div className="lyrics-box">
 
                 <div className="lyrics-source">
                   Automatic lyrics
                 </div>
 
+
                 <pre>
                   {automaticLyrics}
                 </pre>
 
               </div>
+
             )}
 
 
           {!lyricsLoading &&
             !automaticLyrics &&
             lyricsError && (
+
               <div className="lyrics-error">
+
                 <p>
                   {lyricsError}
                 </p>
+
 
                 <p>
                   You can use the audio search
                   buttons below to learn the song.
                 </p>
+
               </div>
+
             )}
 
         </div>
 
 
-        {/* =====================================
+        {/* =============================================
             MUSIC SEARCH
-        ====================================== */}
+        ============================================= */}
 
         <div className="song-learning-card">
 
           <div className="section-heading">
 
             <div>
+
               <h2>
                 🎧 Listen & Learn
               </h2>
+
 
               <p>
                 Search for the song and practice
                 along with the available audio.
               </p>
+
             </div>
 
           </div>
+
 
           <div className="audio-buttons">
 
             <button
               className="primary-button"
-              onClick={openYouTube}
+
+              onClick={
+                openYouTube
+              }
             >
+
               ▶ Search on YouTube
+
             </button>
+
 
             <button
               className="secondary-button"
-              onClick={openSpotify}
+
+              onClick={
+                openSpotify
+              }
             >
+
               🎧 Search on Spotify
+
             </button>
 
           </div>
 
+
           <p className="small-note">
+
             Audio opens in the selected music
             service. Full-song playback depends
             on the service and availability.
+
           </p>
 
         </div>
 
 
-        {/* =====================================
+        {/* =============================================
             SONG DETAILS
-        ====================================== */}
+        ============================================= */}
 
         <div className="song-learning-card">
 
@@ -598,74 +1274,120 @@ function SongLearning() {
             📚 About This Song
           </h2>
 
+
           <div className="song-details">
 
             <div>
+
               <span>
                 Song
               </span>
 
+
               <strong>
                 {foundSong.title}
               </strong>
+
             </div>
 
+
             <div>
+
               <span>
                 Artist
               </span>
 
+
               <strong>
                 {foundSong.artist}
               </strong>
+
             </div>
 
+
             <div>
+
               <span>
                 Category
               </span>
 
+
               <strong>
-                {foundSong.category}
+                {foundSong.category ||
+                  foundSong.course ||
+                  "Music"}
               </strong>
+
             </div>
 
+
             <div>
+
               <span>
                 Difficulty
               </span>
 
+
               <strong>
-                {foundSong.difficulty}
+                {foundSong.difficulty ||
+                  "Medium"}
               </strong>
+
             </div>
+
+
+            {foundSong.instructions && (
+
+              <div>
+
+                <span>
+                  Teacher Instructions
+                </span>
+
+
+                <strong>
+                  {foundSong.instructions}
+                </strong>
+
+              </div>
+
+            )}
 
           </div>
 
         </div>
 
 
-        {/* =====================================
+        {/* =============================================
             BACK BUTTON
-        ====================================== */}
+        ============================================= */}
 
         <div className="song-learning-footer">
 
           <button
             className="secondary-button"
+
             onClick={() =>
-              navigate("/my-songs")
+              navigate(
+                "/my-songs"
+              )
             }
           >
+
             ← Back to My Songs
+
           </button>
 
         </div>
 
+
       </div>
 
     </div>
+
   )
+
 }
+
 
 export default SongLearning

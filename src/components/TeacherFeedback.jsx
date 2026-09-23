@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
+
+const API_URL =
+  "http://127.0.0.1:5000/api/feedback/"
+
+const NOTIFICATION_API =
+  "http://127.0.0.1:5000/api/notifications/"
+
+
 function TeacherFeedback() {
 
   // ==============================
@@ -8,55 +16,141 @@ function TeacherFeedback() {
   // ==============================
 
   const [feedbackList, setFeedbackList] =
-    useState(() =>
-      JSON.parse(
-        localStorage.getItem("tantraFeedback")
-      ) || []
-    )
+    useState([])
 
   const [responses, setResponses] =
     useState({})
 
+  const [loading, setLoading] =
+    useState(true)
+
 
   // ==============================
-  // LOAD LIVE FEEDBACK
+  // JWT HEADERS
+  // ==============================
+
+  function getAuthHeaders() {
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+      "Content-Type": "application/json",
+
+      Authorization:
+        `Bearer ${token}`
+    }
+  }
+
+
+  // ==============================
+  // LOAD FEEDBACK FROM MONGODB
+  // ==============================
+
+  async function loadFeedback() {
+
+    try {
+
+      setLoading(true)
+
+
+      const response =
+        await fetch(
+          API_URL,
+          {
+            method: "GET",
+
+            headers:
+              getAuthHeaders(),
+
+            cache: "no-store"
+          }
+        )
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          `Server returned ${response.status}`
+        )
+
+      }
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Teacher Feedback:",
+        data
+      )
+
+
+      if (
+        data.success &&
+        Array.isArray(
+          data.feedback
+        )
+      ) {
+
+        setFeedbackList(
+          data.feedback
+        )
+
+      } else {
+
+        setFeedbackList([])
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Teacher feedback loading error:",
+        error
+      )
+
+      setFeedbackList([])
+
+    } finally {
+
+      setLoading(false)
+
+    }
+
+  }
+
+
+  // ==============================
+  // INITIAL LOAD
   // ==============================
 
   useEffect(() => {
 
-    function loadFeedback() {
+    loadFeedback()
 
-      const savedFeedback =
-        JSON.parse(
-          localStorage.getItem("tantraFeedback")
-        ) || []
 
-      setFeedbackList(savedFeedback)
+    function handleFeedbackUpdated() {
+
+      loadFeedback()
 
     }
 
-    loadFeedback()
-
-    window.addEventListener(
-      "storage",
-      loadFeedback
-    )
 
     window.addEventListener(
       "feedbackUpdated",
-      loadFeedback
+      handleFeedbackUpdated
     )
+
 
     return () => {
 
       window.removeEventListener(
-        "storage",
-        loadFeedback
-      )
-
-      window.removeEventListener(
         "feedbackUpdated",
-        loadFeedback
+        handleFeedbackUpdated
       )
 
     }
@@ -73,10 +167,16 @@ function TeacherFeedback() {
     value
   ) {
 
-    setResponses((previous) => ({
-      ...previous,
-      [id]: value
-    }))
+    setResponses(
+      previous => ({
+
+        ...previous,
+
+        [id]:
+          value
+
+      })
+    )
 
   }
 
@@ -85,12 +185,17 @@ function TeacherFeedback() {
   // SEND RESPONSE
   // ==============================
 
-  function submitResponse(id) {
+  async function submitResponse(
+    id
+  ) {
 
     const responseText =
       responses[id] || ""
 
-    if (!responseText.trim()) {
+
+    if (
+      !responseText.trim()
+    ) {
 
       alert(
         "Please write a response."
@@ -101,131 +206,182 @@ function TeacherFeedback() {
     }
 
 
-    const updatedFeedback =
-      feedbackList.map(
-        (feedback) => {
+    try {
 
-          if (
-            String(feedback.id) ===
-            String(id)
-          ) {
+      // =================================
+      // UPDATE FEEDBACK IN MONGODB
+      // =================================
 
-            return {
-              ...feedback,
-              response:
-                responseText.trim()
-            }
+      const response =
+        await fetch(
+          `${API_URL}${id}/response`,
+          {
+            method: "PUT",
+
+            headers:
+              getAuthHeaders(),
+
+            body:
+              JSON.stringify({
+
+                response:
+                  responseText.trim()
+
+              })
 
           }
+        )
 
-          return feedback
+
+      if (!response.ok) {
+
+        throw new Error(
+          `Server returned ${response.status}`
+        )
+
+      }
+
+
+      const data =
+        await response.json()
+
+
+      if (!data.success) {
+
+        alert(
+          data.message ||
+          "Unable to save response."
+        )
+
+        return
+
+      }
+
+
+      // =================================
+      // FIND STUDENT
+      // =================================
+
+      const selectedFeedback =
+        feedbackList.find(
+          feedback =>
+            String(
+              feedback.id
+            ) ===
+            String(id)
+        )
+
+
+      // =================================
+      // STUDENT NOTIFICATION
+      // =================================
+
+      if (
+        selectedFeedback &&
+        selectedFeedback.studentId
+      ) {
+
+        try {
+
+          await fetch(
+            NOTIFICATION_API,
+            {
+              method: "POST",
+
+              headers:
+                getAuthHeaders(),
+
+              body:
+                JSON.stringify({
+
+                  userId:
+                    selectedFeedback.studentId,
+
+                  title:
+                    "Teacher responded to your feedback",
+
+                  message:
+                    "Your teacher has responded to your feedback.",
+
+                  type:
+                    "Feedback"
+
+                })
+
+            }
+          )
+
+        } catch (
+          notificationError
+        ) {
+
+          console.error(
+            "Student notification error:",
+            notificationError
+          )
+
+        }
+
+      }
+
+
+      // =================================
+      // RELOAD FEEDBACK
+      // =================================
+
+      await loadFeedback()
+
+
+      // =================================
+      // CLEAR RESPONSE BOX
+      // =================================
+
+      setResponses(
+        previous => {
+
+          const updated = {
+            ...previous
+          }
+
+          delete updated[id]
+
+          return updated
 
         }
       )
 
 
-    // ==============================
-    // SAVE FEEDBACK
-    // ==============================
-
-    localStorage.setItem(
-      "tantraFeedback",
-      JSON.stringify(
-        updatedFeedback
-      )
-    )
-
-
-    setFeedbackList(
-      updatedFeedback
-    )
-
-
-    window.dispatchEvent(
-      new Event("feedbackUpdated")
-    )
-
-
-    // ==============================
-    // STUDENT NOTIFICATION
-    // ==============================
-
-    const studentNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraNotifications"
-        ) || "[]"
+      alert(
+        "Response sent successfully! ✅"
       )
 
 
-    const newNotification = {
+      window.dispatchEvent(
+        new Event(
+          "feedbackUpdated"
+        )
+      )
 
-      id:
-        Date.now() +
-        Math.floor(
-          Math.random() * 1000
-        ),
 
-      icon:
-        "💬",
+    } catch (error) {
 
-      title:
-        "Teacher responded to your feedback",
+      console.error(
+        "Teacher response error:",
+        error
+      )
 
-      message:
-        "Your teacher has responded to your feedback.",
-
-      type:
-        "Feedback",
-
-      time:
-        "Just now",
-
-      unread:
-        true
+      alert(
+        "Unable to connect to the server."
+      )
 
     }
 
-
-    localStorage.setItem(
-      "tantraNotifications",
-      JSON.stringify([
-        newNotification,
-        ...studentNotifications
-      ])
-    )
-
-
-    window.dispatchEvent(
-      new Event("notificationsUpdated")
-    )
-
-
-    // ==============================
-    // CLEAR RESPONSE BOX
-    // ==============================
-
-    setResponses(
-      (previous) => {
-
-        const updated = {
-          ...previous
-        }
-
-        delete updated[id]
-
-        return updated
-
-      }
-    )
-
-
-    alert(
-      "Response sent successfully! ✅"
-    )
-
   }
 
+
+  // ==============================
+  // PAGE
+  // ==============================
 
   return (
 
@@ -275,7 +431,25 @@ function TeacherFeedback() {
 
       <div className="teacher-feedback-list">
 
-        {feedbackList.length === 0 ? (
+        {loading ? (
+
+          <div className="no-feedback">
+
+            <div className="no-feedback-icon">
+              ⏳
+            </div>
+
+            <h2>
+              Loading feedback...
+            </h2>
+
+            <p>
+              Please wait while student feedback is loaded.
+            </p>
+
+          </div>
+
+        ) : feedbackList.length === 0 ? (
 
           <div className="no-feedback">
 
@@ -296,22 +470,26 @@ function TeacherFeedback() {
         ) : (
 
           feedbackList.map(
-            (feedback) => {
+            feedback => {
 
               const rating =
                 Math.min(
                   5,
                   Math.max(
                     0,
-                    Number(feedback.rating) || 0
+                    Number(
+                      feedback.rating
+                    ) || 0
                   )
                 )
+
 
               const hasResponse =
                 feedback.response &&
                 feedback.response.trim() &&
                 feedback.response !==
                   "Waiting for academy response..."
+
 
               return (
 
@@ -330,12 +508,19 @@ function TeacherFeedback() {
                     <div>
 
                       <h3>
-                        Student Feedback
+
+                        {feedback.studentName
+                          ? feedback.studentName
+                          : "Student Feedback"}
+
                       </h3>
+
 
                       <div className="teacher-feedback-rating">
 
-                        {"★".repeat(rating)}
+                        {"★".repeat(
+                          rating
+                        )}
 
                         {"☆".repeat(
                           5 - rating
@@ -347,8 +532,10 @@ function TeacherFeedback() {
 
 
                     <span>
+
                       {feedback.date ||
                         "Date not available"}
+
                     </span>
 
                   </div>
@@ -365,8 +552,10 @@ function TeacherFeedback() {
                     </strong>
 
                     <p>
+
                       "{feedback.message ||
                         "No message provided."}"
+
                     </p>
 
                   </div>
@@ -403,11 +592,12 @@ function TeacherFeedback() {
                               feedback.id
                             ] || ""
                           }
-                          onChange={(e) =>
-                            handleResponseChange(
-                              feedback.id,
-                              e.target.value
-                            )
+                          onChange={
+                            event =>
+                              handleResponseChange(
+                                feedback.id,
+                                event.target.value
+                              )
                           }
                         />
 

@@ -1,21 +1,7 @@
 import { useEffect, useState } from "react"
 
-const defaultFeedback = [
-  {
-    id: 1,
-    rating: 5,
-    message: "The vocal training sessions are very helpful!",
-    date: "02 Sep 2026",
-    response: "Thank you for your feedback!"
-  },
-  {
-    id: 2,
-    rating: 4,
-    message: "The practice sessions are well organised.",
-    date: "20 Aug 2026",
-    response: "We're glad you're enjoying the sessions."
-  }
-]
+const API_URL =
+  "http://127.0.0.1:5000/api/feedback/"
 
 
 function Feedback() {
@@ -25,86 +11,171 @@ function Feedback() {
   // ==============================
 
   const [feedbackList, setFeedbackList] =
-    useState(() => {
-
-      const saved =
-        JSON.parse(
-          localStorage.getItem("tantraFeedback")
-        )
-
-      return saved || defaultFeedback
-
-    })
-
+    useState([])
 
   const [rating, setRating] =
     useState(0)
 
-
   const [message, setMessage] =
     useState("")
-
 
   const [submitted, setSubmitted] =
     useState(false)
 
+  const [loading, setLoading] =
+    useState(true)
 
 
   // ==============================
-  // LIVE FEEDBACK SYNC
+  // JWT AUTH HEADERS
+  // ==============================
+
+  function getAuthHeaders() {
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+      Authorization:
+        "Bearer " + token
+    }
+  }
+
+
+  // ==============================
+  // LOAD STUDENT FEEDBACK
+  // ==============================
+
+  async function loadFeedback() {
+
+    try {
+
+      setLoading(true)
+
+      const storedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
+        )
+
+
+      if (!storedUser) {
+
+        setFeedbackList([])
+
+        setLoading(false)
+
+        return
+
+      }
+
+
+      const loggedInUser =
+        JSON.parse(
+          storedUser
+        )
+
+
+      const studentId =
+        loggedInUser.id
+
+
+      if (!studentId) {
+
+        setFeedbackList([])
+
+        setLoading(false)
+
+        return
+
+      }
+
+
+      const response =
+        await fetch(
+          `${API_URL}?studentId=${studentId}`,
+          {
+            method: "GET",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              ...getAuthHeaders()
+            }
+          }
+        )
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          `Server returned ${response.status}`
+        )
+
+      }
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Feedback API response:",
+        data
+      )
+
+
+      if (
+        data.success &&
+        Array.isArray(data.feedback)
+      ) {
+
+        setFeedbackList(
+          data.feedback
+        )
+
+      } else {
+
+        setFeedbackList([])
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Feedback loading error:",
+        error
+      )
+
+      setFeedbackList([])
+
+    } finally {
+
+      setLoading(false)
+
+    }
+
+  }
+
+
+  // ==============================
+  // INITIAL LOAD
   // ==============================
 
   useEffect(() => {
 
-    function loadFeedback() {
-
-      const saved =
-        JSON.parse(
-          localStorage.getItem("tantraFeedback")
-        ) || defaultFeedback
-
-
-      setFeedbackList(saved)
-
-    }
-
-
-    window.addEventListener(
-      "storage",
-      loadFeedback
-    )
-
-
-    window.addEventListener(
-      "feedbackUpdated",
-      loadFeedback
-    )
-
-
-    return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadFeedback
-      )
-
-
-      window.removeEventListener(
-        "feedbackUpdated",
-        loadFeedback
-      )
-
-    }
+    loadFeedback()
 
   }, [])
-
 
 
   // ==============================
   // SUBMIT FEEDBACK
   // ==============================
 
-  function submitFeedback() {
+  async function submitFeedback() {
 
     if (rating === 0) {
 
@@ -128,135 +199,165 @@ function Feedback() {
     }
 
 
-    const newFeedback = {
+    try {
 
-      id: Date.now(),
+      const storedUser =
+        sessionStorage.getItem(
+          "tantraLoggedInUser"
+        )
 
-      rating: rating,
 
-      message: message.trim(),
+      if (!storedUser) {
 
-      date:
-        new Date().toLocaleDateString(
-          "en-GB",
+        alert(
+          "Please login again."
+        )
+
+        return
+
+      }
+
+
+      const loggedInUser =
+        JSON.parse(
+          storedUser
+        )
+
+
+      const studentId =
+        loggedInUser.id
+
+
+      const studentName =
+        loggedInUser.name || ""
+
+
+      if (!studentId) {
+
+        alert(
+          "Student account information not found."
+        )
+
+        return
+
+      }
+
+
+      const feedbackData = {
+
+        studentId:
+          studentId,
+
+        studentName:
+          studentName,
+
+        rating:
+          rating,
+
+        message:
+          message.trim()
+
+      }
+
+
+      console.log(
+        "Sending feedback:",
+        feedbackData
+      )
+
+
+      const response =
+        await fetch(
+          API_URL,
           {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-          }
-        ),
+            method: "POST",
 
-      response:
-        "Waiting for academy response..."
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              ...getAuthHeaders()
+            },
+
+            body:
+              JSON.stringify(
+                feedbackData
+              )
+
+          }
+        )
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          `Server returned ${response.status}`
+        )
+
+      }
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Feedback submit response:",
+        data
+      )
+
+
+      if (!data.success) {
+
+        alert(
+          data.message ||
+          "Unable to submit feedback."
+        )
+
+        return
+
+      }
+
+
+      // ==============================
+      // RELOAD FROM MONGODB
+      // ==============================
+
+      await loadFeedback()
+
+
+      // ==============================
+      // RESET FORM
+      // ==============================
+
+      setRating(0)
+
+      setMessage("")
+
+      setSubmitted(true)
+
+
+      setTimeout(() => {
+
+        setSubmitted(false)
+
+      }, 2500)
+
+
+    } catch (error) {
+
+      console.error(
+        "Feedback submit error:",
+        error
+      )
+
+      alert(
+        "Unable to connect to the server."
+      )
 
     }
 
-
-
-    const updatedFeedback = [
-
-      newFeedback,
-
-      ...feedbackList
-
-    ]
-
-
-
-    // Save feedback
-
-    localStorage.setItem(
-      "tantraFeedback",
-      JSON.stringify(
-        updatedFeedback
-      )
-    )
-
-
-
-    setFeedbackList(
-      updatedFeedback
-    )
-
-
-
-    // Tell Teacher Feedback page
-
-    window.dispatchEvent(
-      new Event("feedbackUpdated")
-    )
-
-
-
-    // ==============================
-    // TEACHER NOTIFICATION
-    // ==============================
-
-    const teacherNotifications =
-      JSON.parse(
-        localStorage.getItem(
-          "tantraTeacherNotifications"
-        )
-      ) || []
-
-
-    teacherNotifications.unshift({
-
-      id: Date.now() + 1,
-
-      icon: "💬",
-
-      title:
-        "New student feedback",
-
-      message:
-        `A student submitted a ${rating}/5 feedback.`,
-
-      type: "Feedback",
-
-      time: "Just now",
-
-      unread: true
-
-    })
-
-
-
-    localStorage.setItem(
-      "tantraTeacherNotifications",
-      JSON.stringify(
-        teacherNotifications
-      )
-    )
-
-
-
-    window.dispatchEvent(
-      new Event(
-        "notificationsUpdated"
-      )
-    )
-
-
-
-    // Reset form
-
-    setRating(0)
-
-    setMessage("")
-
-    setSubmitted(true)
-
-
-
-    setTimeout(() => {
-
-      setSubmitted(false)
-
-    }, 2500)
-
   }
-
 
 
   return (
@@ -266,7 +367,7 @@ function Feedback() {
 
       {/* ==============================
           HEADER
-          ============================== */}
+      ============================== */}
 
       <div className="feedback-header">
 
@@ -291,10 +392,9 @@ function Feedback() {
       </div>
 
 
-
       {/* ==============================
           FEEDBACK FORM
-          ============================== */}
+      ============================== */}
 
       <div className="feedback-form-card">
 
@@ -306,7 +406,6 @@ function Feedback() {
         <h2>
           How was your learning experience?
         </h2>
-
 
 
         {/* STARS */}
@@ -337,7 +436,6 @@ function Feedback() {
         </div>
 
 
-
         {/* SELECTED RATING */}
 
         <p className="selected-rating">
@@ -349,7 +447,6 @@ function Feedback() {
         </p>
 
 
-
         {/* MESSAGE */}
 
         <textarea
@@ -357,10 +454,11 @@ function Feedback() {
           rows="5"
           value={message}
           onChange={(e) =>
-            setMessage(e.target.value)
+            setMessage(
+              e.target.value
+            )
           }
         />
-
 
 
         {/* SUCCESS */}
@@ -376,10 +474,10 @@ function Feedback() {
         )}
 
 
-
         {/* SUBMIT */}
 
         <button
+          type="button"
           className="feedback-submit"
           onClick={submitFeedback}
         >
@@ -389,10 +487,9 @@ function Feedback() {
       </div>
 
 
-
       {/* ==============================
           PREVIOUS FEEDBACK
-          ============================== */}
+      ============================== */}
 
       <div className="previous-feedback">
 
@@ -406,67 +503,89 @@ function Feedback() {
         </h2>
 
 
-
         <div className="feedback-list">
 
-          {feedbackList.map(
-            (feedback) => (
+          {loading ? (
 
-              <div
-                className="feedback-card"
-                key={feedback.id}
-              >
+            <div className="feedback-card">
+
+              <p>
+                Loading your feedback...
+              </p>
+
+            </div>
+
+          ) : feedbackList.length === 0 ? (
+
+            <div className="feedback-card">
+
+              <p>
+                You have not submitted any feedback yet.
+              </p>
+
+            </div>
+
+          ) : (
+
+            feedbackList.map(
+              (feedback) => (
+
+                <div
+                  className="feedback-card"
+                  key={feedback.id}
+                >
+
+                  {/* TOP */}
+
+                  <div className="feedback-card-top">
+
+                    <div className="feedback-rating">
+
+                      {"★".repeat(
+                        feedback.rating
+                      )}
+
+                    </div>
 
 
-                {/* TOP */}
-
-                <div className="feedback-card-top">
-
-                  <div className="feedback-rating">
-
-                    {"★".repeat(
-                      feedback.rating
-                    )}
+                    <span>
+                      {feedback.date}
+                    </span>
 
                   </div>
 
 
-                  <span>
-                    {feedback.date}
-                  </span>
+                  {/* MESSAGE */}
 
-                </div>
+                  <p className="feedback-message">
 
+                    "{feedback.message}"
 
-
-                {/* MESSAGE */}
-
-                <p className="feedback-message">
-
-                  "{feedback.message}"
-
-                </p>
-
-
-
-                {/* TEACHER RESPONSE */}
-
-                <div className="teacher-response">
-
-                  <strong>
-                    🎓 Academy Response
-                  </strong>
-
-
-                  <p>
-                    {feedback.response}
                   </p>
 
+
+                  {/* TEACHER RESPONSE */}
+
+                  <div className="teacher-response">
+
+                    <strong>
+                      🎓 Academy Response
+                    </strong>
+
+
+                    <p>
+                      {feedback.response ||
+                        "Waiting for academy response..."}
+
+                    </p>
+
+                  </div>
+
                 </div>
 
-              </div>
-
+              )
             )
+
           )}
 
         </div>

@@ -2,7 +2,6 @@ import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
 
 function Register() {
-
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
@@ -15,10 +14,9 @@ function Register() {
   })
 
   const [error, setError] = useState("")
-
+  const [loading, setLoading] = useState(false)
 
   function handleChange(e) {
-
     const { name, value } = e.target
 
     setFormData((previous) => ({
@@ -29,9 +27,7 @@ function Register() {
     setError("")
   }
 
-
-  function handleSubmit(e) {
-
+  async function handleSubmit(e) {
     e.preventDefault()
 
     const {
@@ -43,9 +39,7 @@ function Register() {
       accountType
     } = formData
 
-
     // Validation
-
     if (
       !name.trim() ||
       !email.trim() ||
@@ -53,115 +47,79 @@ function Register() {
       !password ||
       !confirmPassword
     ) {
-
       setError("Please fill in all fields.")
       return
     }
 
-
     if (password.length < 6) {
-
-      setError(
-        "Password must contain at least 6 characters."
-      )
-
+      setError("Password must contain at least 6 characters.")
       return
     }
-
 
     if (password !== confirmPassword) {
-
-      setError(
-        "Passwords do not match."
-      )
-
+      setError("Passwords do not match.")
       return
     }
-
 
     if (accountType !== "Student") {
-
-      setError(
-        "Only Student accounts are currently available."
-      )
-
+      setError("Only Student accounts are currently available.")
       return
     }
 
+    try {
+      setLoading(true)
+      setError("")
 
-    // Get existing accounts
-
-    const existingAccounts =
-      JSON.parse(
-        localStorage.getItem("tantraAccounts")
-      ) || []
-
-
-    // Check duplicate email
-
-    const emailExists =
-      existingAccounts.some(
-        (account) =>
-          account.email.toLowerCase() ===
-          email.trim().toLowerCase()
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            phone: phone.trim(),
+            password: password,
+            role: "student"
+          })
+        }
       )
 
+      const data = await response.json()
 
-    if (emailExists) {
+      if (!response.ok) {
+        setError(data.message || "Registration failed.")
+        return
+      }
+
+      // Save basic student information locally
+      localStorage.setItem(
+        "tantraStudentProfile",
+        JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim()
+        })
+      )
+
+      alert("Account created successfully! Please login.")
+
+      navigate("/login")
+
+    } catch (error) {
+      console.error("Registration error:", error)
 
       setError(
-        "An account with this email already exists."
+        "Unable to connect to the server. Please make sure the backend is running."
       )
-
-      return
+    } finally {
+      setLoading(false)
     }
-
-
-    // Create account
-
-    const newAccount = {
-      id: Date.now(),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      password: password,
-      accountType: accountType
-    }
-
-
-    existingAccounts.push(newAccount)
-
-
-    localStorage.setItem(
-      "tantraAccounts",
-      JSON.stringify(existingAccounts)
-    )
-
-
-    // Save basic student information
-
-    localStorage.setItem(
-      "tantraStudentProfile",
-      JSON.stringify({
-        name: newAccount.name,
-        email: newAccount.email,
-        phone: newAccount.phone
-      })
-    )
-
-
-    alert(
-      "Account created successfully! Please login."
-    )
-
-
-    navigate("/login")
-
   }
 
-
   return (
-
     <div className="register-page">
 
       <div className="register-card">
@@ -178,15 +136,11 @@ function Register() {
           Join Tantra Academy
         </p>
 
-
         {error && (
-
           <div className="register-error">
             {error}
           </div>
-
         )}
-
 
         <form onSubmit={handleSubmit}>
 
@@ -202,7 +156,6 @@ function Register() {
             placeholder="Enter your full name"
           />
 
-
           <label>
             Email
           </label>
@@ -214,7 +167,6 @@ function Register() {
             onChange={handleChange}
             placeholder="Enter your email"
           />
-
 
           <label>
             Phone Number
@@ -228,7 +180,6 @@ function Register() {
             placeholder="Enter your phone number"
           />
 
-
           <label>
             Password
           </label>
@@ -240,7 +191,6 @@ function Register() {
             onChange={handleChange}
             placeholder="Create a password"
           />
-
 
           <label>
             Confirm Password
@@ -254,7 +204,6 @@ function Register() {
             placeholder="Confirm your password"
           />
 
-
           <label>
             Account Type
           </label>
@@ -264,7 +213,6 @@ function Register() {
             value={formData.accountType}
             onChange={handleChange}
           >
-
             <option value="Student">
               Student
             </option>
@@ -272,19 +220,17 @@ function Register() {
             <option value="Parent">
               Parent
             </option>
-
           </select>
-
 
           <button
             type="submit"
             className="register-submit"
+            disabled={loading}
           >
-            Create Account
+            {loading ? "Creating Account..." : "Create Account"}
           </button>
 
         </form>
-
 
         <p className="already-account">
 
@@ -299,7 +245,6 @@ function Register() {
       </div>
 
     </div>
-
   )
 }
 

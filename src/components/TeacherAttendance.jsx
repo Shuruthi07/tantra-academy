@@ -1,204 +1,440 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+
+
+// ============================================================
+// API
+// ============================================================
+
+const ATTENDANCE_API =
+  "http://127.0.0.1:5000/api/attendance/"
+
+const STUDENTS_API =
+  "http://127.0.0.1:5000/api/admin/teacher-students"
+
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 function TeacherAttendance() {
 
-  // ==============================
-  // DEFAULT STUDENTS
-  // ==============================
+  const [searchParams, setSearchParams] =
+    useSearchParams()
 
-  const defaultStudents = [
-    {
-      id: 1,
-      name: "Arun Kumar",
-      course: "Vocal Training",
-      attendance: 95,
-      status: "Present"
-    },
-    {
-      id: 2,
-      name: "Priya Sharma",
-      course: "Piano",
-      attendance: 91,
-      status: "Present"
-    },
-    {
-      id: 3,
-      name: "Rahul Raj",
-      course: "Guitar",
-      attendance: 82,
-      status: "Absent"
-    },
-    {
-      id: 4,
-      name: "Ananya S",
-      course: "Vocal Training",
-      attendance: 96,
-      status: "Present"
-    },
-    {
-      id: 5,
-      name: "Karthik M",
-      course: "Guitar",
-      attendance: 88,
-      status: "Present"
-    },
-    {
-      id: 6,
-      name: "Meena Devi",
-      course: "Piano",
-      attendance: 93,
-      status: "Present"
+  const selectedStudentId =
+    searchParams.get("studentId") || ""
+
+
+  // ==========================================================
+  // STATE
+  // ==========================================================
+
+  const [students, setStudents] =
+    useState([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [saving, setSaving] =
+    useState(false)
+
+  const [error, setError] =
+    useState("")
+
+
+  const today =
+    new Date()
+      .toISOString()
+      .split("T")[0]
+
+  const [date, setDate] =
+    useState(today)
+
+
+  // ==========================================================
+  // AUTH
+  // ==========================================================
+
+  function getAuthHeaders() {
+
+    const token =
+      sessionStorage.getItem(
+        "tantraAuthToken"
+      )
+
+    return {
+      "Content-Type": "application/json",
+
+      ...(token
+        ? {
+            Authorization:
+              `Bearer ${token}`
+          }
+        : {})
     }
-  ]
+  }
 
 
-  // ==============================
-  // ATTENDANCE STATE
-  // ==============================
+  // ==========================================================
+  // STUDENT FORMAT
+  // ==========================================================
 
-  const [students, setStudents] = useState(() =>
-    JSON.parse(
-      localStorage.getItem("tantraAttendance")
-    ) || defaultStudents
-  )
+  function formatStudent(student) {
+
+    return {
+
+      id:
+        student.id ||
+        student._id ||
+        student.userId,
+
+      name:
+        student.name ||
+        student.fullName ||
+        "Student",
+
+      email:
+        student.email || "",
+
+      phone:
+        student.phone || "",
+
+      course:
+        student.course ||
+        student.program ||
+        "Music Training",
+
+      attendance:
+        Number(
+          student.attendance
+        ) || 0,
+
+      status:
+        student.status === "Absent"
+          ? "Absent"
+          : "Present"
+    }
+  }
 
 
-  const [saved, setSaved] = useState(false)
+  // ==========================================================
+  // LOAD STUDENTS
+  // ==========================================================
 
+  async function loadStudents() {
 
-  // ==============================
-  // CURRENT DATE
-  // ==============================
+    try {
 
-  const today = new Date()
-
-  const formattedDate =
-    today.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric"
-    })
-
-
-  // ==============================
-  // LOAD ATTENDANCE
-  // ==============================
-
-  useEffect(() => {
-
-    function loadAttendance() {
-
-      const savedAttendance =
-        JSON.parse(
-          localStorage.getItem("tantraAttendance")
+      const response =
+        await fetch(
+          `${STUDENTS_API}?_=${Date.now()}`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
         )
 
 
-      if (savedAttendance) {
-        setStudents(savedAttendance)
-      }
-
-    }
+      const data =
+        await response.json()
 
 
-    window.addEventListener(
-      "storage",
-      loadAttendance
-    )
-
-
-    window.addEventListener(
-      "attendanceUpdated",
-      loadAttendance
-    )
-
-
-    return () => {
-
-      window.removeEventListener(
-        "storage",
-        loadAttendance
+      console.log(
+        "Students API:",
+        response.status,
+        data
       )
 
 
-      window.removeEventListener(
-        "attendanceUpdated",
-        loadAttendance
-      )
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
 
-    }
+        sessionStorage.removeItem(
+          "tantraAuthToken"
+        )
 
-  }, [])
+        sessionStorage.removeItem(
+          "tantraLoggedInUser"
+        )
 
+        sessionStorage.removeItem(
+          "tantraCurrentUser"
+        )
 
-  // ==============================
-  // SYNC NEW STUDENTS
-  // ==============================
+        window.location.href =
+          "/login"
 
-  useEffect(() => {
-
-    function syncStudents() {
-
-      const academyStudents =
-        JSON.parse(
-          localStorage.getItem("tantraStudents")
-        ) || []
-
-
-      if (academyStudents.length === 0) {
-        return
+        return []
       }
 
 
-      setStudents((currentStudents) => {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
 
-        const updatedStudents =
-          [...currentStudents]
+        throw new Error(
+          data.message ||
+          "Unable to load students."
+        )
+      }
 
 
-        academyStudents.forEach((newStudent) => {
+      const formatted =
+        Array.isArray(
+          data.students
+        )
+          ? data.students.map(
+              formatStudent
+            )
+          : []
 
-          const existingStudent =
-            updatedStudents.find(
-              (student) =>
-                student.id === newStudent.id ||
-                student.name === newStudent.name
+
+      return formatted
+
+    } catch (error) {
+
+      console.error(
+        "Student loading error:",
+        error
+      )
+
+      throw error
+    }
+  }
+
+
+  // ==========================================================
+  // LOAD EXISTING ATTENDANCE
+  // ==========================================================
+
+  async function loadExistingAttendance(
+    studentList
+  ) {
+
+    try {
+
+      const response =
+        await fetch(
+          `${ATTENDANCE_API}?date=${encodeURIComponent(
+            date
+          )}&_=${Date.now()}`,
+          {
+            method: "GET",
+            headers:
+              getAuthHeaders(),
+            cache: "no-store"
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Attendance API:",
+        response.status,
+        data
+      )
+
+
+      if (
+        !response.ok ||
+        !data.success ||
+        !Array.isArray(
+          data.attendance
+        )
+      ) {
+        return studentList
+      }
+
+
+      if (
+        data.attendance.length === 0
+      ) {
+        return studentList
+      }
+
+
+      // Map existing attendance
+      // by student ID
+
+      const attendanceMap =
+        new Map()
+
+
+      data.attendance.forEach(
+        record => {
+
+          const id =
+            record.studentId ||
+            record.userId ||
+            record.id ||
+            record._id
+
+          if (id) {
+
+            attendanceMap.set(
+              String(id),
+              record
+            )
+          }
+        }
+      )
+
+
+      return studentList.map(
+        student => {
+
+          const record =
+            attendanceMap.get(
+              String(student.id)
             )
 
 
-          if (!existingStudent) {
-
-            updatedStudents.push({
-              id: newStudent.id,
-              name: newStudent.name,
-              course: newStudent.course,
-              attendance: Number(
-                newStudent.attendance || 0
-              ),
-              status: "Present"
-            })
-
+          if (!record) {
+            return student
           }
 
-        })
+
+          return {
+            ...student,
+
+            status:
+              String(
+                record.status || ""
+              ).toLowerCase() ===
+              "absent"
+                ? "Absent"
+                : "Present",
+
+            attendance:
+              Number(
+                record.attendance
+              ) || student.attendance
+          }
+        }
+      )
+
+    } catch (error) {
+
+      console.warn(
+        "Could not load existing attendance:",
+        error
+      )
+
+      return studentList
+    }
+  }
 
 
-        return updatedStudents
+  // ==========================================================
+  // LOAD DATA
+  // ==========================================================
 
-      })
+  async function loadAttendance() {
 
+    try {
+
+      setLoading(true)
+      setError("")
+
+
+      let studentList =
+        await loadStudents()
+
+
+      // If a student was selected
+      // from Teacher Students page
+
+      if (
+        selectedStudentId
+      ) {
+
+        studentList =
+          studentList.filter(
+            student =>
+              String(
+                student.id
+              ) ===
+              String(
+                selectedStudentId
+              )
+          )
+      }
+
+
+      studentList =
+        await loadExistingAttendance(
+          studentList
+        )
+
+
+      setStudents(
+        studentList
+      )
+
+    } catch (error) {
+
+      console.error(
+        "Attendance loading error:",
+        error
+      )
+
+      setStudents([])
+
+      setError(
+        error.message ||
+        "Unable to load attendance."
+      )
+
+    } finally {
+
+      setLoading(false)
+
+    }
+  }
+
+
+  // ==========================================================
+  // INITIAL LOAD
+  // ==========================================================
+
+  useEffect(() => {
+
+    loadAttendance()
+
+  }, [
+    date,
+    selectedStudentId
+  ])
+
+
+  // ==========================================================
+  // LISTEN FOR UPDATES
+  // ==========================================================
+
+  useEffect(() => {
+
+    function refreshAttendance() {
+      loadAttendance()
     }
 
 
     window.addEventListener(
       "studentsUpdated",
-      syncStudents
+      refreshAttendance
     )
 
-
     window.addEventListener(
-      "storage",
-      syncStudents
+      "attendanceUpdated",
+      refreshAttendance
     )
 
 
@@ -206,386 +442,721 @@ function TeacherAttendance() {
 
       window.removeEventListener(
         "studentsUpdated",
-        syncStudents
+        refreshAttendance
       )
-
 
       window.removeEventListener(
-        "storage",
-        syncStudents
+        "attendanceUpdated",
+        refreshAttendance
       )
-
     }
 
-  }, [])
+  }, [
+    date,
+    selectedStudentId
+  ])
 
 
-  // ==============================
-  // CHANGE PRESENT / ABSENT
-  // ==============================
+  // ==========================================================
+  // TOGGLE ATTENDANCE
+  // ==========================================================
 
-  function toggleAttendance(id) {
+  function toggleAttendance(
+    studentId
+  ) {
 
-    setStudents((currentStudents) =>
+    setStudents(
+      currentStudents =>
+        currentStudents.map(
+          student => {
 
-      currentStudents.map((student) => {
+            if (
+              String(
+                student.id
+              ) !==
+              String(
+                studentId
+              )
+            ) {
+              return student
+            }
 
-        if (student.id === id) {
 
-          return {
-            ...student,
+            return {
+              ...student,
 
-            status:
-              student.status === "Present"
-                ? "Absent"
-                : "Present"
+              status:
+                student.status ===
+                "Present"
+                  ? "Absent"
+                  : "Present"
+            }
           }
-
-        }
-
-        return student
-
-      })
-
+        )
     )
-
-
-    setSaved(false)
-
   }
 
 
-  // ==============================
-  // PRESENT COUNT
-  // ==============================
+  // ==========================================================
+  // SAVE ATTENDANCE
+  // ==========================================================
 
-  const presentCount =
+  async function saveAttendance() {
+
+    if (
+      students.length === 0
+    ) {
+
+      alert(
+        "No students available."
+      )
+
+      return
+    }
+
+
+    try {
+
+      setSaving(true)
+      setError("")
+
+
+      const attendanceData =
+        students.map(
+          student => ({
+
+            studentId:
+              String(
+                student.id
+              ),
+
+            studentName:
+              student.name,
+
+            course:
+              student.course,
+
+            status:
+              student.status,
+
+            attendance:
+              Number(
+                student.attendance
+              ) || 0
+          })
+        )
+
+
+      const payload = {
+
+        date: date,
+
+        attendance:
+          attendanceData
+
+      }
+
+
+      console.log(
+        "Sending attendance:",
+        payload
+      )
+
+
+      const response =
+        await fetch(
+          ATTENDANCE_API,
+          {
+            method: "POST",
+
+            headers:
+              getAuthHeaders(),
+
+            body:
+              JSON.stringify(
+                payload
+              )
+          }
+        )
+
+
+      const data =
+        await response.json()
+
+
+      console.log(
+        "Save attendance response:",
+        response.status,
+        data
+      )
+
+
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+
+        sessionStorage.removeItem(
+          "tantraAuthToken"
+        )
+
+        sessionStorage.removeItem(
+          "tantraLoggedInUser"
+        )
+
+        sessionStorage.removeItem(
+          "tantraCurrentUser"
+        )
+
+        window.location.href =
+          "/login"
+
+        return
+      }
+
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+
+        throw new Error(
+          data.message ||
+          "Unable to save attendance."
+        )
+      }
+
+
+      alert(
+        "Attendance saved successfully! ✅"
+      )
+
+
+      window.dispatchEvent(
+        new Event(
+          "attendanceUpdated"
+        )
+      )
+
+
+      await loadAttendance()
+
+    } catch (error) {
+
+      console.error(
+        "Save attendance error:",
+        error
+      )
+
+      setError(
+        error.message ||
+        "Unable to save attendance."
+      )
+
+      alert(
+        error.message ||
+        "Unable to save attendance."
+      )
+
+    } finally {
+
+      setSaving(false)
+
+    }
+  }
+
+
+  // ==========================================================
+  // SHOW ALL STUDENTS
+  // ==========================================================
+
+  function showAllStudents() {
+
+    setSearchParams({})
+  }
+
+
+  // ==========================================================
+  // SUMMARY
+  // ==========================================================
+
+  const totalStudents =
+    students.length
+
+
+  const presentStudents =
     students.filter(
-      (student) =>
-        student.status === "Present"
+      student =>
+        student.status ===
+        "Present"
     ).length
 
 
-  // ==============================
-  // ABSENT COUNT
-  // ==============================
+  const absentStudents =
+    students.filter(
+      student =>
+        student.status ===
+        "Absent"
+    ).length
 
-  const absentCount =
-    students.length - presentCount
-
-
-  // ==============================
-  // ATTENDANCE PERCENTAGE
-  // ==============================
 
   const attendancePercentage =
-    students.length > 0
+    totalStudents > 0
       ? Math.round(
-          (presentCount /
-            students.length) *
-          100
+          (
+            presentStudents /
+            totalStudents
+          ) * 100
         )
       : 0
 
 
-  // ==============================
-  // SAVE ATTENDANCE
-  // ==============================
+  // ==========================================================
+  // SELECTED STUDENT
+  // ==========================================================
 
-  function saveAttendance() {
-
-    localStorage.setItem(
-      "tantraAttendance",
-      JSON.stringify(students)
-    )
-
-
-    window.dispatchEvent(
-      new Event("attendanceUpdated")
-    )
-
-
-    window.dispatchEvent(
-      new Event("studentsUpdated")
-    )
+  const selectedStudent =
+    selectedStudentId
+      ? students.find(
+          student =>
+            String(
+              student.id
+            ) ===
+            String(
+              selectedStudentId
+            )
+        )
+      : null
 
 
-    setSaved(true)
-
-  }
-
-
-  // ==============================
-  // PAGE
-  // ==============================
+  // ==========================================================
+  // UI
+  // ==========================================================
 
   return (
 
     <div className="teacher-attendance-page">
 
 
-      {/* ==============================
+      {/* ====================================================
           HEADER
-      ============================== */}
+      ==================================================== */}
 
-      <div className="teacher-attendance-header">
+      <div className="teacher-page-header">
 
         <div>
 
-          <p>
+          <p className="teacher-page-eyebrow">
             STUDENT ATTENDANCE
           </p>
-
 
           <h1>
             Attendance 📊
           </h1>
 
-
-          <span>
-            Mark and monitor student attendance.
-          </span>
-
-        </div>
-
-
-        <div className="attendance-date">
-          📅 {formattedDate}
-        </div>
-
-      </div>
-
-
-      {/* ==============================
-          SUMMARY
-      ============================== */}
-
-      <div className="attendance-summary">
-
-
-        <div className="attendance-summary-card">
-
-          <span>
-            Total Students
-          </span>
-
-          <h2>
-            {students.length}
-          </h2>
-
           <p>
-            Today's class
+            Track and manage student attendance.
           </p>
 
         </div>
 
 
-        <div className="attendance-summary-card">
+        <div className="attendance-date-box">
 
-          <span>
-            Present
-          </span>
+          <label>
+            Date
+          </label>
 
-          <h2>
-            {presentCount}
-          </h2>
-
-          <p>
-            Students present
-          </p>
-
-        </div>
-
-
-        <div className="attendance-summary-card">
-
-          <span>
-            Absent
-          </span>
-
-          <h2>
-            {absentCount}
-          </h2>
-
-          <p>
-            Students absent
-          </p>
-
-        </div>
-
-
-        <div className="attendance-summary-card">
-
-          <span>
-            Attendance
-          </span>
-
-          <h2>
-            {attendancePercentage}%
-          </h2>
-
-          <p>
-            Today's attendance
-          </p>
+          <input
+            type="date"
+            value={date}
+            onChange={
+              event =>
+                setDate(
+                  event.target.value
+                )
+            }
+          />
 
         </div>
 
       </div>
 
 
-      {/* ==============================
-          ATTENDANCE CARD
-      ============================== */}
+      {/* ====================================================
+          ERROR
+      ==================================================== */}
 
-      <div className="attendance-card">
+      {error && (
+
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "14px 18px",
+            borderRadius: "12px",
+            background: "#fff1f2",
+            border: "1px solid #fecdd3",
+            color: "#be123c",
+            fontWeight: "600"
+          }}
+        >
+
+          ⚠️ {error}
+
+        </div>
+
+      )}
 
 
-        <div className="attendance-card-header">
+      {/* ====================================================
+          SELECTED STUDENT
+      ==================================================== */}
+
+      {selectedStudentId && (
+
+        <div
+          className="selected-attendance-banner"
+          style={{
+            marginBottom: "20px",
+            padding: "16px 20px",
+            borderRadius: "14px",
+            background:
+              "linear-gradient(135deg,#f3e8ff,#ede9fe)",
+            border:
+              "1px solid #ddd6fe",
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+            gap: "15px"
+          }}
+        >
 
           <div>
 
-            <p>
-              ALL COURSES
-            </p>
+            <strong
+              style={{
+                color: "#6d28d9",
+                fontSize: "16px"
+              }}
+            >
+              👤 Viewing selected student
+            </strong>
 
-            <h2>
-              Today's Attendance
-            </h2>
+            {selectedStudent && (
+
+              <span
+                style={{
+                  marginLeft: "8px",
+                  color: "#4c4560",
+                  fontWeight: "700"
+                }}
+              >
+                — {selectedStudent.name}
+              </span>
+
+            )}
 
           </div>
 
 
           <button
-            className="save-attendance-btn"
-            onClick={saveAttendance}
+            type="button"
+            onClick={
+              showAllStudents
+            }
+            style={{
+              border: "none",
+              borderRadius: "10px",
+              padding: "9px 16px",
+              background: "#7c3aed",
+              color: "#fff",
+              fontWeight: "700",
+              cursor: "pointer"
+            }}
           >
-            💾 Save Attendance
+            View All Students
           </button>
 
         </div>
 
-
-        {/* ==============================
-            SUCCESS MESSAGE
-        ============================== */}
-
-        {saved && (
-
-          <div className="attendance-success">
-            ✓ Attendance saved successfully!
-          </div>
-
-        )}
+      )}
 
 
-        {/* ==============================
-            STUDENT LIST
-        ============================== */}
+      {/* ====================================================
+          SUMMARY
+      ==================================================== */}
 
-        <div className="attendance-list">
+      <div className="attendance-summary-grid">
 
+        <div className="attendance-summary-card">
 
-          <div className="attendance-list-head">
+          <span className="attendance-summary-icon">
+            👥
+          </span>
 
-            <span>
-              Student
-            </span>
+          <div>
 
-            <span>
-              Course
-            </span>
+            <p>
+              Total Students
+            </p>
 
-            <span>
-              Overall Attendance
-            </span>
-
-            <span>
-              Today's Status
-            </span>
+            <h2>
+              {totalStudents}
+            </h2>
 
           </div>
 
-
-          {students.length === 0 ? (
-
-            <div className="no-feedback">
-
-              <h2>
-                No students yet
-              </h2>
-
-              <p>
-                Add students from the Students page.
-              </p>
-
-            </div>
-
-          ) : (
-
-            students.map((student) => (
-
-              <div
-                className="attendance-row"
-                key={student.id}
-              >
+        </div>
 
 
-                <div className="attendance-student">
+        <div className="attendance-summary-card">
 
-                  <div className="attendance-avatar">
-                    👤
-                  </div>
+          <span className="attendance-summary-icon">
+            🟢
+          </span>
 
-                  <strong>
-                    {student.name}
-                  </strong>
+          <div>
 
-                </div>
+            <p>
+              Present
+            </p>
 
+            <h2>
+              {presentStudents}
+            </h2>
 
-                <span>
-                  {student.course}
-                </span>
+          </div>
 
-
-                <strong>
-                  {student.attendance}%
-                </strong>
+        </div>
 
 
-                <button
-                  className={
-                    student.status === "Present"
-                      ? "present-btn"
-                      : "absent-btn"
-                  }
-                  onClick={() =>
-                    toggleAttendance(
-                      student.id
-                    )
-                  }
-                >
+        <div className="attendance-summary-card">
 
-                  {student.status === "Present"
-                    ? "✓ Present"
-                    : "✕ Absent"}
+          <span className="attendance-summary-icon">
+            🔴
+          </span>
 
-                </button>
+          <div>
 
-              </div>
+            <p>
+              Absent
+            </p>
 
-            ))
+            <h2>
+              {absentStudents}
+            </h2>
 
-          )}
+          </div>
+
+        </div>
+
+
+        <div className="attendance-summary-card">
+
+          <span className="attendance-summary-icon">
+            📈
+          </span>
+
+          <div>
+
+            <p>
+              Attendance
+            </p>
+
+            <h2>
+              {attendancePercentage}%
+            </h2>
+
+          </div>
 
         </div>
 
       </div>
 
+
+      {/* ====================================================
+          ATTENDANCE CARD
+      ==================================================== */}
+
+      <div className="attendance-main-card">
+
+        <div className="attendance-card-header">
+
+          <div>
+
+            <h2>
+              {selectedStudentId
+                ? "Selected Student Attendance"
+                : "Today's Attendance"}
+            </h2>
+
+            <p>
+              {selectedStudentId
+                ? "Mark the selected student's attendance."
+                : "Mark students as present or absent."}
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            className="save-attendance-btn"
+            onClick={
+              saveAttendance
+            }
+            disabled={
+              saving ||
+              loading ||
+              students.length === 0
+            }
+          >
+
+            {saving
+              ? "Saving..."
+              : "💾 Save Attendance"}
+
+          </button>
+
+        </div>
+
+
+        {/* ==================================================
+            LOADING
+        ================================================== */}
+
+        {loading ? (
+
+          <div className="attendance-loading">
+
+            <div>
+              Loading students...
+            </div>
+
+          </div>
+
+        ) : students.length === 0 ? (
+
+          <div className="attendance-empty">
+
+            <div className="attendance-empty-icon">
+              👩‍🎓
+            </div>
+
+            <h3>
+              No students found
+            </h3>
+
+            <p>
+              {error ||
+                "No registered students were found."}
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div className="attendance-student-list">
+
+            {students.map(
+              (
+                student,
+                index
+              ) => (
+
+                <div
+                  className="attendance-student-row"
+                  key={
+                    student.id ||
+                    index
+                  }
+                >
+
+                  {/* STUDENT */}
+
+                  <div className="attendance-student-info">
+
+                    <div className="attendance-avatar">
+
+                      {student.name
+                        ? student.name
+                            .charAt(0)
+                            .toUpperCase()
+                        : "S"}
+
+                    </div>
+
+
+                    <div>
+
+                      <h3>
+                        {student.name}
+                      </h3>
+
+                      <p>
+                        {student.course}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+
+                  {/* OVERALL */}
+
+                  <div className="attendance-overall">
+
+                    <span>
+                      Overall
+                    </span>
+
+                    <strong>
+                      {student.attendance}%
+                    </strong>
+
+                  </div>
+
+
+                  {/* STATUS */}
+
+                  <button
+                    type="button"
+                    className={
+                      `attendance-status-btn ${
+                        student.status ===
+                        "Present"
+                          ? "present"
+                          : "absent"
+                      }`
+                    }
+                    onClick={() =>
+                      toggleAttendance(
+                        student.id
+                      )
+                    }
+                  >
+
+                    {student.status ===
+                    "Present"
+                      ? "✓ Present"
+                      : "✕ Absent"}
+
+                  </button>
+
+                </div>
+
+              )
+            )}
+
+          </div>
+
+        )}
+
+      </div>
+
     </div>
-
   )
-
 }
 
 export default TeacherAttendance
