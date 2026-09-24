@@ -1,86 +1,85 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# ==========================================
+# FRONTEND
+# ==========================================
 
-node_modules
-dist
-dist-ssr
-*.local
+node_modules/
+dist/
+.vite/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# =====================================================
+
+# ==========================================
 # BACKEND - PYTHON
-# =====================================================
+# ==========================================
 
-__pycache__/
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+
 *.py[cod]
-*.class
+*$py.class
 
-# Python virtual environment
+# Python virtual environments
 venv/
-.venv/
 env/
 ENV/
 
-# Python cache
+
+# ==========================================
+# PYTHON TOOLS
+# ==========================================
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# =====================================================
-# SECRETS
-# =====================================================
 
-.env
-.env.*
-!.env.example
+# ==========================================
+# DATABASE / LOCAL FILES
+# ==========================================
 
-backend/.env
-
-# Secret files
-*.key
-*.pem
-secrets/
-credentials/
-
-# =====================================================
-# DATABASE / LOCAL DATA
-# =====================================================
-
-data/
-mongodb-data/
 *.db
 *.sqlite
 *.sqlite3
 
-# =====================================================
+
+# ==========================================
+# LOG FILES
+# ==========================================
+
+*.log
+
+
+# ==========================================
+# IDE / EDITOR
+# ==========================================
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+.idea/
+
+
+# ==========================================
+# OS FILES
+# ==========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ==========================================
 # TEMPORARY FILES
-# =====================================================
+# ==========================================
 
 *.tmp
 *.temp
 *.bak
-*.swp
-
-# =====================================================
-# COVERAGE
-# =====================================================
-
-coverage/
-.nyc_output/
-
