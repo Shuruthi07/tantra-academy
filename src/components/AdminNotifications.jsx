@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 
 const API_URL =
-  "http://127.0.0.1:5000/api/notifications"
+  "https://tantra-academy-1.onrender.com/api/notifications"
 
 function AdminNotifications() {
   const [notifications, setNotifications] = useState([])

@@ -6,13 +6,13 @@ import {
 
 
 const STUDENTS_API =
-  "http://127.0.0.1:5000/api/admin/teacher-students"
+  "https://tantra-academy-1.onrender.com/api/admin/teacher-students"
 
 const FEES_API =
-  "http://127.0.0.1:5000/api/fees/"
+  "https://tantra-academy-1.onrender.com/api/fees/"
 
 const NOTIFICATIONS_API =
-  "http://127.0.0.1:5000/api/notifications"
+  "https://tantra-academy-1.onrender.com/api/notifications"
 
 
 function TeacherFees() {

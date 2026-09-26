@@ -7,13 +7,13 @@ import { useNavigate } from "react-router-dom"
 // =========================================================
 
 const TASK_API =
-  "http://127.0.0.1:5000/api/admin/tasks"
+  "https://tantra-academy-1.onrender.com/api/admin/tasks"
 
 const PROGRESS_API =
-  "http://127.0.0.1:5000/api/task-progress"
+  "https://tantra-academy-1.onrender.com/api/task-progress"
 
 const NOTIFICATION_API =
-  "http://127.0.0.1:5000/api/notifications"
+  "https://tantra-academy-1.onrender.com/api/notifications"
 
 
 // =========================================================
@@ -347,7 +347,7 @@ function Tasks() {
 
           const response =
             await fetch(
-              "http://127.0.0.1:5000/api/admin/teachers",
+              "https://tantra-academy-1.onrender.com/api/admin/teachers",
               {
                 method: "GET",
 

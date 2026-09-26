@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
 
 const NOTIFICATIONS_API =
-  "http://127.0.0.1:5000/api/notifications"
+  "https://tantra-academy-1.onrender.com/api/notifications"
 
 const STUDENTS_API =
-  "http://127.0.0.1:5000/api/admin/students"
+  "https://tantra-academy-1.onrender.com/api/admin/students"
 
 
 function TeacherNotifications() {

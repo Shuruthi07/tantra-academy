@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-const BACKEND_URL = "http://127.0.0.1:5000"
+const BACKEND_URL = "https://tantra-academy-1.onrender.com"
 
 function TeacherStudents() {
 

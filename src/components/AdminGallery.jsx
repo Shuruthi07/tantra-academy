@@ -28,7 +28,7 @@ function AdminGallery() {
     useState(false)
 
   const API_URL =
-    "http://127.0.0.1:5000/api/gallery"
+    "https://tantra-academy-1.onrender.com/api/gallery"
 
   // ==========================================
   // JWT AUTH HEADERS

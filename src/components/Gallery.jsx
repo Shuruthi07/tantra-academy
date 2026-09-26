@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const API_URL = "http://127.0.0.1:5000/api/gallery";
+const API_URL = "https://tantra-academy-1.onrender.com/api/gallery";
 
 function Gallery() {
 

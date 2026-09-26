@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 const EVENTS_API =
-  "http://127.0.0.1:5000/api/events"
+  "https://tantra-academy-1.onrender.com/api/events"
 
 function MyBookings() {
   const [bookings, setBookings] = useState([])

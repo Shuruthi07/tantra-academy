@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react"
 
 const EVENTS_API =
-  "http://127.0.0.1:5000/api/events"
+  "https://tantra-academy-1.onrender.com/api/events"
 
 const NOTIFICATIONS_API =
-  "http://127.0.0.1:5000/api/notifications"
+  "https://tantra-academy-1.onrender.com/api/notifications"
 
 const STUDENTS_API =
-  "http://127.0.0.1:5000/api/admin/teacher-students"
+  "https://tantra-academy-1.onrender.com/api/admin/teacher-students"
 
 function TeacherEvents() {
   const [events, setEvents] = useState([])

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 const ATTENDANCE_API =
-  "http://127.0.0.1:5000/api/attendance/"
+  "https://tantra-academy-1.onrender.com/api/attendance/"
 
 const STUDENTS_API =
-  "http://127.0.0.1:5000/api/admin/students"
+  "https://tantra-academy-1.onrender.com/api/admin/students"
 
 
 function AdminAttendance() {

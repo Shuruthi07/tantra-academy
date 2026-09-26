@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 
 const SONGS_API =
-  "http://127.0.0.1:5000/api/admin/songs"
+  "https://tantra-academy-1.onrender.com/api/admin/songs"
 
 const STUDENTS_API =
-  "http://127.0.0.1:5000/api/admin/students"
+  "https://tantra-academy-1.onrender.com/api/admin/students"
 
 
 function AdminSongs() {

@@ -6,14 +6,14 @@ import { useEffect, useState } from "react"
 // ==================================================
 
 const SONGS_API =
-  "http://127.0.0.1:5000/api/admin/songs"
+  "https://tantra-academy-1.onrender.com/api/admin/songs"
 
 
 // IMPORTANT:
 // Keep the trailing slash.
 // This prevents the Flask redirect/CORS problem.
 const PROGRESS_API =
-  "http://127.0.0.1:5000/api/song-progress/"
+  "https://tantra-academy-1.onrender.com/api/song-progress/"
 
 
 // ==================================================

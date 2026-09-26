@@ -3,7 +3,7 @@ import PaymentReceipt from "./PaymentReceipt"
 
 
 const FEES_API =
-  "http://127.0.0.1:5000/api/fees"
+  "https://tantra-academy-1.onrender.com/api/fees"
 
 
 function Payments() {

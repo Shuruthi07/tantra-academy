@@ -10,11 +10,11 @@ import {
 
 
 const SONGS_API =
-  "http://127.0.0.1:5000/api/admin/songs"
+  "https://tantra-academy-1.onrender.com/api/admin/songs"
 
 
 const PROGRESS_API =
-  "http://127.0.0.1:5000/api/song-progress"
+  "https://tantra-academy-1.onrender.com/api/song-progress"
 
 
 const LYRICS_API =

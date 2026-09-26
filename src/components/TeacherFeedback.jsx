@@ -3,10 +3,10 @@ import { Link } from "react-router-dom"
 
 
 const API_URL =
-  "http://127.0.0.1:5000/api/feedback/"
+  "https://tantra-academy-1.onrender.com/api/feedback/"
 
 const NOTIFICATION_API =
-  "http://127.0.0.1:5000/api/notifications/"
+  "https://tantra-academy-1.onrender.com/api/notifications/"
 
 
 function TeacherFeedback() {
