@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"
+
 function Hero() {
   return (
     <section className="hero">
@@ -21,13 +23,17 @@ function Hero() {
         </p>
 
         <div className="hero-buttons">
-          <button className="primary-btn">
-            Start Learning
-          </button>
 
-          <button className="secondary-btn">
+          {/* Start Learning */}
+          <Link to="/register" className="primary-btn">
+            Start Learning
+          </Link>
+
+          {/* Explore Classes */}
+          <Link to="/classes" className="secondary-btn">
             Explore Classes
-          </button>
+          </Link>
+
         </div>
 
       </div>

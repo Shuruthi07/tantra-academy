@@ -98,8 +98,7 @@ function Login() {
       // READ RESPONSE
       // =========================================
 
-      const data =
-        await response.json()
+      const data = await response.json()
 
 
       // =========================================

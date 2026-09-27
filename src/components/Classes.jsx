@@ -36,7 +36,6 @@ const classes = [
     level: "All Levels"
   }
 ]
-
 function Classes() {
   return (
     <section className="classes-section">
@@ -68,11 +67,6 @@ function Classes() {
             <span className="class-level">
               {musicClass.level}
             </span>
-
-            <button>
-              Explore Class →
-            </button>
-
           </div>
         ))}
 

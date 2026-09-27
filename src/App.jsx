@@ -18,6 +18,11 @@ import Classes from "./components/Classes"
 import Events from "./components/Events"
 import Gallery from "./components/Gallery"
 import About from "./components/About"
+import EventsGallery from "./components/EventsGallery"
+import GalleryPublic from "./components/GalleryPublic"
+import HomeEvents from "./components/HomeEvents";
+import HomeGallery from "./components/HomeGallery";
+import Home from "./components/Home";
 
 
 // ========================================
@@ -89,24 +94,6 @@ import AdminNotifications from "././components/AdminNotifications"
 
 
 // ========================================
-// HOME PAGE
-// ========================================
-
-function Home() {
-  return (
-    <>
-      <Navbar />
-      <Hero />
-      <Classes />
-      <Events />
-      <Gallery />
-      <About />
-    </>
-  )
-}
-
-
-// ========================================
 // APP
 // ========================================
 
@@ -120,9 +107,12 @@ function App() {
         {/* ==================================
             PUBLIC
         ================================== */}
-
         <Route
           path="/"
+          element={<Home />}
+        />
+        <Route
+          path="/home"
           element={<Home />}
         />
 
@@ -135,6 +125,55 @@ function App() {
           path="/register"
           element={<Register />}
         />
+
+        <Route
+           path="/classes"
+           element={
+          <>
+          <Navbar />
+          <Classes />
+           </>
+           }
+          />
+<Route path="/events-gallery" element={<><Navbar /><EventsGallery /></> } />
+<Route
+  path="/gallery-public"
+  element={
+    <>
+      <Navbar />
+      <GalleryPublic />
+    </>
+  }
+/>
+<Route
+  path="/events"
+  element={
+    <>
+      <Navbar />
+      <Events />
+    </>
+  }
+/>
+
+<Route
+  path="/gallery"
+  element={
+    <>
+      <Navbar />
+      <Gallery />
+    </>
+  }
+/>
+
+<Route
+  path="/about"
+  element={
+    <>
+      <Navbar />
+      <About />
+    </>
+  }
+/>
 
 
         {/* ==================================
