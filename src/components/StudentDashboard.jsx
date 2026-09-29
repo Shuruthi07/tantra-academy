@@ -985,10 +985,10 @@ function StudentDashboard() {
           {/* GALLERY */}
 
           <Link
-            to="/gallery"
+            to="/student/gallery"
             className={
               isActive(
-                "/gallery"
+                "/student/gallery"
               )
                 ? "active"
                 : ""

@@ -280,7 +280,7 @@ function App() {
         />
 
         <Route
-          path="/gallery"
+          path="/student/gallery"
           element={
             <ProtectedRoute
               allowedRole="student"
@@ -289,6 +289,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/student-dashboard/gallery"
+  element={
+    <ProtectedRoute allowedRole="student">
+      <GalleryPage />
+    </ProtectedRoute>
+  }
+/>
 
         <Route
           path="/student-attendance"
