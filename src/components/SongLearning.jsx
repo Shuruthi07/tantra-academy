@@ -283,11 +283,11 @@ function SongLearning() {
 
           const progressResponse =
             await fetch(
-              `${PROGRESS_API}?studentId=${encodeURIComponent(
-                studentId
-              )}&songId=${encodeURIComponent(
-                formattedSong.id
-              )}`,
+              `${PROGRESS_API}/?studentId=${encodeURIComponent(
+  studentId
+)}&songId=${encodeURIComponent(
+  formattedSong.id
+)}`,
               {
                 method: "GET",
 
